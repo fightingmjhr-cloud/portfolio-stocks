@@ -5,14 +5,14 @@ import time
 import FinanceDataReader as fdr
 
 # -----------------------------------------------------------------------------
-# [CORE ENGINE] 8대 엔진 & 자산 배분 알고리즘
+# [CORE ENGINE] 8대 엔진 & 자산 배분 (전략 분리 복구)
 # -----------------------------------------------------------------------------
 
 class SingularityEngine:
     def __init__(self):
         pass
 
-    # [PHASE 1] 8대 엔진 (프롬프트 논리 완벽 구현)
+    # [PHASE 1] 8대 엔진 데이터 생성
     def _calculate_metrics(self, mode):
         # 1. Physics
         omega = np.random.uniform(5.0, 25.0) 
@@ -42,7 +42,7 @@ class SingularityEngine:
             "gnn": gnn, "sent": sent, "es": es, "kelly": kelly
         }
 
-    # [PHASE 2] 승률 및 논리 산출 (감점제)
+    # [PHASE 2] 승률 산출 (감점제)
     def run_diagnosis(self, mode="swing"):
         m = self._calculate_metrics(mode)
         score = 50.0 
@@ -75,46 +75,44 @@ class SingularityEngine:
 
     # [PHASE 3] 자산 배분 및 구체적 행동 지침 (Portfolio Action)
     def generate_asset_plan(self, mode, price, m, wr, cash, current_qty):
-        # 1. 가격 레벨 산출
+        # 1. 가격 레벨
         if mode == "scalping":
             vol = m['vol_surf'] * 0.03
             entry = int(price * (1 - vol*0.5))
             target = int(price * (1 + vol*1.2))
             stop = int(price * (1 - vol*0.8))
-            time_frame = "09:00 ~ 10:30"
+            time_frame = "09:00 ~ 10:30 (오전 집중)"
         else:
             target = int(price * 1.15)
             stop = int(price * 0.95)
-            time_frame = "종가 베팅 / 5일선 지지 시"
+            time_frame = "종가 확인 / 5일선 지지"
 
-        # 2. 자금 관리 (Kelly Betting) - 얼마나 살 것인가?
+        # 2. 자금 관리 (Kelly Betting)
         kelly_ratio = m['kelly'] # 예: 0.2 (20%)
         alloc_cash = cash * kelly_ratio
         can_buy_qty = int(alloc_cash / price) if price > 0 else 0
         
-        # 3. 행동 결정 (Action Logic)
+        # 3. 행동 결정
         action_card = {}
         
-        if wr >= 0.8: # 강력 매수 / 불타기
-            cmd = "🔥 STRONG BUY (비중 확대)"
+        if wr >= 0.8: # 강력 매수
+            cmd = "🔥 STRONG BUY"
             if current_qty > 0:
-                msg = f"상승 에너지가 확실합니다. 현재 보유 {current_qty}주에 더해, 가용 현금의 {int(kelly_ratio*100)}%를 투입하여 **{can_buy_qty}주 추가 매수(불타기)** 하십시오."
+                msg = f"상승 확신 구간입니다. 현재 {current_qty}주에 더해, 현금의 {int(kelly_ratio*100)}%로 **{can_buy_qty}주 불타기** 하십시오."
             else:
-                msg = f"절호의 기회입니다. 현금의 {int(kelly_ratio*100)}%인 **{can_buy_qty}주**를 시가 혹은 눌림목에 적극 진입하십시오."
-                
-        elif wr >= 0.65: # 매수 / 홀딩
-            cmd = "⚖️ BUY / HOLD (추세 추종)"
+                msg = f"절호의 진입 기회입니다. 현금의 {int(kelly_ratio*100)}%인 **{can_buy_qty}주**를 적극 매수하십시오."
+        elif wr >= 0.65: # 매수/홀딩
+            cmd = "⚖️ BUY / HOLD"
             if current_qty > 0:
-                msg = f"추세가 살아있습니다. 추가 매수보다는 현재 물량 **{current_qty}주를 목표가 {target:,}원까지 홀딩**하십시오."
+                msg = f"추세가 유지됩니다. 추가 매수보다는 **{current_qty}주를 목표가 {target:,}원까지 홀딩**하십시오."
             else:
-                msg = f"진입 가능합니다. 다만 변동성을 고려하여 **{int(can_buy_qty/2)}주(비중 절반)**만 분할로 접근하십시오."
-                
-        else: # 매도 / 관망
-            cmd = "🛡️ SELL / WAIT (리스크 관리)"
+                msg = f"진입 가능합니다. 다만 리스크 분산을 위해 **{int(can_buy_qty/2)}주(절반)**만 선취매 하십시오."
+        else: # 매도/관망
+            cmd = "🛡️ SELL / WAIT"
             if current_qty > 0:
-                msg = f"위험 신호(승률 {wr*100:.0f}%)가 감지됩니다. **전량 매도**하여 현금을 확보하거나, 손절가 **{stop:,}원**을 절대 사수하십시오."
+                msg = f"위험 신호 감지. **전량 매도**하여 현금을 확보하거나, 손절가 **{stop:,}원**을 반드시 지키십시오."
             else:
-                msg = "현재 진입하기엔 리스크가 큽니다. 현금을 아끼고 다음 기회를 노리십시오."
+                msg = "현재 진입은 위험합니다. 현금을 아끼고 관망하십시오."
 
         action_card = {
             "cmd": cmd, "msg": msg, "time": time_frame,
@@ -123,13 +121,13 @@ class SingularityEngine:
         }
         return action_card
 
-# [DATA] Top 30 로딩
+# [DATA] Top 50 로딩
 @st.cache_data(ttl=3600)
-def load_top30_data():
+def load_top50_data():
     try:
         df = fdr.StockListing('KRX')
         df = df[~df['Name'].str.contains('스팩|리츠|우|홀딩스|ET')]
-        return df.sort_values(by='Marcap', ascending=False).head(30)
+        return df.sort_values(by='Marcap', ascending=False).head(50)
     except: return pd.DataFrame()
 
 # [UI CONFIG]
@@ -182,19 +180,18 @@ st.markdown("<div class='app-title'>🐯 Tiger&Hamzzi Quant 🐹</div>", unsafe_
 
 # [SESSION STATE]
 if 'portfolio' not in st.session_state: st.session_state.portfolio = []
-if 'best_picks' not in st.session_state: st.session_state.best_picks = []
-if 'cash' not in st.session_state: st.session_state.cash = 10000000 # 기본값 1천만원
+if 'sc_list' not in st.session_state: st.session_state.sc_list = []
+if 'sw_list' not in st.session_state: st.session_state.sw_list = []
+if 'cash' not in st.session_state: st.session_state.cash = 10000000 
 
-# [INPUT PANEL: CASH & STOCKS]
-with st.expander("💰 자산 및 포트폴리오 설정 (필수 입력)", expanded=True):
+# [INPUT PANEL]
+with st.expander("💰 자산 및 포트폴리오 설정", expanded=True):
     # 1. 현금 입력
     st.markdown("##### 1. 가용 현금 (예수금)")
     st.session_state.cash = st.number_input("현재 주식 계좌에 있는 현금 (원)", value=st.session_state.cash, step=100000, format="%d")
     
     st.markdown("---")
     st.markdown("##### 2. 보유 종목 리스트")
-    
-    # 2. 종목 입력 헤더
     h1, h2, h3, h4, h5 = st.columns([3.2, 1.8, 1.3, 2.0, 0.4])
     h1.markdown("<span class='input-label'>종목명</span>", unsafe_allow_html=True)
     h2.markdown("<span class='input-label'>평단가(원)</span>", unsafe_allow_html=True)
@@ -214,61 +211,62 @@ with st.expander("💰 자산 및 포트폴리오 설정 (필수 입력)", expan
         st.session_state.portfolio.append({'name': '', 'price': 0, 'qty': 0, 'strategy': '추세추종'}); st.rerun()
 
 # [GLOBAL LAUNCH]
-if st.button("🐯 타이거&햄찌 출격! (통합 진단 & 추천) 🐹"):
+if st.button("🐯 타이거&햄찌 출격! (진단 및 스캔) 🐹"):
     st.session_state.running = True
     
-    with st.spinner("8대 엔진 가동 중... 보유 종목 진단 및 시장 스캔 동시 수행..."):
+    with st.spinner("8대 엔진 풀가동... 보유 종목 진단 및 초단타/추세추종 개별 스캔 중..."):
         engine = SingularityEngine()
-        market_data = load_top30_data() # Real Data
+        market_data = load_top50_data() 
         
-        # 1. 내 보유 종목 진단 (My Portfolio)
+        # 1. 내 보유 종목 진단
         my_results = []
         for s in st.session_state.portfolio:
             if not s['name']: continue
             mode = "scalping" if s['strategy'] == "초단타" else "swing"
             price = s['price']
             
-            # 실시간 현재가 조회
+            # 실시간 가격
             match = market_data[market_data['Name'] == s['name']]
             if not match.empty:
                 price = int(match.iloc[0]['Close'])
             else:
-                try: # Top 30에 없으면 개별 조회
+                try: 
                     df = fdr.StockListing('KRX'); code = df[df['Name'] == s['name']].iloc[0]['Code']
                     p_df = fdr.DataReader(code); price = int(p_df['Close'].iloc[-1])
                 except: pass
             
-            # 분석
             wr, m, reasons = engine.run_diagnosis(mode)
             plan = engine.generate_asset_plan(mode, price, m, wr, st.session_state.cash, s['qty'])
             pnl = ((price - s['price'])/s['price']*100) if s['price'] > 0 else 0
             
             my_results.append({'name': s['name'], 'price': price, 'pnl': pnl, 'win': wr, 'mode': mode, 'm': m, 'reasons': reasons, 'plan': plan})
-        
         st.session_state.my_diagnosis = my_results
 
-        # 2. 시장 추천 (Singularity Choice)
-        candidates = []
+        # 2. 시장 스캔 (분리 수행)
+        sc_temp, sw_temp = [], []
+        
         for _, row in market_data.iterrows():
             if pd.isna(row['Close']): continue
             price = int(float(row['Close']))
             name = row['Name']
             
-            # 두 전략 모두 테스트 -> 높은 점수 채택
+            # (A) 초단타 스캔
             wr_sc, m_sc, r_sc = engine.run_diagnosis("scalping")
+            if wr_sc >= 0.70:
+                plan = engine.generate_asset_plan("scalping", price, m_sc, wr_sc, st.session_state.cash, 0)
+                sc_temp.append({'name': name, 'price': price, 'win': wr_sc, 'mode': "초단타", 'm': m_sc, 'reasons': r_sc, 'plan': plan})
+                
+            # (B) 추세추종 스캔
             wr_sw, m_sw, r_sw = engine.run_diagnosis("swing")
-            
-            if wr_sc > wr_sw:
-                best_wr, best_mode, best_m, best_r = wr_sc, "초단타", m_sc, r_sc
-            else:
-                best_wr, best_mode, best_m, best_r = wr_sw, "추세추종", m_sw, r_sw
-            
-            if best_wr >= 0.70:
-                plan = engine.generate_asset_plan(best_mode, price, best_m, best_wr, st.session_state.cash, 0)
-                candidates.append({'name': name, 'price': price, 'win': best_wr, 'mode': best_mode, 'm': best_m, 'reasons': best_r, 'plan': plan})
+            if wr_sw >= 0.75:
+                plan = engine.generate_asset_plan("swing", price, m_sw, wr_sw, st.session_state.cash, 0)
+                sw_temp.append({'name': name, 'price': price, 'win': wr_sw, 'mode': "추세추종", 'm': m_sw, 'reasons': r_sw, 'plan': plan})
         
-        candidates.sort(key=lambda x: x['win'], reverse=True)
-        st.session_state.best_picks = candidates[:3]
+        # 정렬 및 Top 3
+        sc_temp.sort(key=lambda x: x['win'], reverse=True)
+        sw_temp.sort(key=lambda x: x['win'], reverse=True)
+        st.session_state.sc_list = sc_temp[:3]
+        st.session_state.sw_list = sw_temp[:3]
         
     st.rerun()
 
@@ -281,8 +279,6 @@ if 'my_diagnosis' in st.session_state and st.session_state.my_diagnosis:
     for d in st.session_state.my_diagnosis:
         p = d['plan']
         border = "#00FF00" if d['win'] >= 0.8 else ("#FFAA00" if d['win'] >= 0.65 else "#FF4444")
-        
-        # 뱃지
         badges = "".join([f"<span class='logic-badge'>{r}</span>" for r in d['reasons']])
         
         st.markdown(f"""
@@ -296,14 +292,12 @@ if 'my_diagnosis' in st.session_state and st.session_state.my_diagnosis:
                 <span style='color:{"#00FF00" if d['pnl']>=0 else "#FF4444"};'>수익률: <b>{d['pnl']:.2f}%</b></span>
             </div>
             <div style='margin-top:10px;'>{badges}</div>
-            
             <div class='action-section' style='border-left-color: {border};'>
                 <div class='action-header'>
                     <span>{p['cmd']}</span>
                     <span>타임라인: {p['time']}</span>
                 </div>
                 <div style='color:#eee; line-height:1.6;'>{p['msg']}</div>
-                
                 <div class='timeline-box'>
                     <div>🔵 진입/추매: <b>{p['prices'][0]:,}원</b></div>
                     <div>🔴 익절: <b>{p['prices'][1]:,}원</b></div>
@@ -313,51 +307,57 @@ if 'my_diagnosis' in st.session_state and st.session_state.my_diagnosis:
         </div>
         """, unsafe_allow_html=True)
 
-# 2. 추천 종목 결과
-if st.session_state.best_picks:
-    st.markdown("<h5>🏆 오늘의 Singularity Choice (Top 3)</h5>", unsafe_allow_html=True)
-    for r in st.session_state.best_picks:
-        p = r['plan']
-        border = "#FFFF00" if r['mode'] == "초단타" else "#00C9FF"
-        badges = "".join([f"<span class='logic-badge'>{rea}</span>" for rea in r['reasons']])
-        
-        st.markdown(f"""
-        <div class='stock-card' style='border-left: 5px solid {border};'>
-            <div style='display:flex; justify-content:space-between; align-items:center;'>
-                <span style='font-size:22px; font-weight:bold; color:#fff;'>{r['name']}</span>
-                <span class='badge' style='background:{border}; color:#000;'>{r['mode']} / {r['win']*100:.1f}%</span>
-            </div>
-            <div style='margin-top:10px;'>{badges}</div>
-            
-            <div class='action-section' style='border-left-color: {border};'>
-                <div class='action-header'>
-                    <span>📢 신규 진입 시나리오</span>
-                    <span>{p['time']}</span>
-                </div>
-                <div style='color:#eee; line-height:1.6;'>{p['msg']}</div>
-                <div class='timeline-box'>
-                    <div>🔵 진입: <b>{p['prices'][0]:,}원</b></div>
-                    <div>🔴 익절: <b>{p['prices'][1]:,}원</b></div>
-                    <div style='color:#FF4444;'>🚫 손절: <b>{p['prices'][2]:,}원</b></div>
-                </div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        # Deep Dive Expander
-        with st.expander(f"🔍 {r['name']} - 8대 엔진 Deep Dive"):
-            m = r['m']
+# 2. 추천 탭 (초단타 / 추세추종 분리)
+if st.session_state.sc_list or st.session_state.sw_list:
+    st.markdown("<h5>🏆 오늘의 8대 엔진 추천 종목 (Top 3)</h5>", unsafe_allow_html=True)
+    tab1, tab2 = st.tabs(["⚡ 초단타 추천", "🌊 추세추종 추천"])
+    
+    def render_rec(data, color):
+        for r in data:
+            p = r['plan']
+            badges = "".join([f"<span class='logic-badge'>{rea}</span>" for rea in r['reasons']])
             st.markdown(f"""
-            <div style='display:grid; grid-template-columns: repeat(2, 1fr); gap:10px; font-size:12px; color:#ccc;'>
-                <div>📐 Omega: <b style='color:#fff; float:right;'>{m['omega']:.2f}</b></div>
-                <div>🌊 VPIN: <b style='color:#fff; float:right;'>{m['vpin']:.2f}</b></div>
-                <div>⚡ Hawkes: <b style='color:#fff; float:right;'>{m['hawkes']:.2f}</b></div>
-                <div>⚖️ OBI: <b style='color:#fff; float:right;'>{m['obi']:.2f}</b></div>
-                <div>📈 Hurst: <b style='color:#fff; float:right;'>{m['hurst']:.2f}</b></div>
-                <div>💰 Kelly: <b style='color:#fff; float:right;'>{m['kelly']:.2f}</b></div>
+            <div class='stock-card' style='border-left: 5px solid {color};'>
+                <div style='display:flex; justify-content:space-between; align-items:center;'>
+                    <span style='font-size:22px; font-weight:bold; color:#fff;'>{r['name']}</span>
+                    <span class='badge' style='background:{color}; color:#000;'>{r['mode']} / {r['win']*100:.1f}%</span>
+                </div>
+                <div style='margin-top:10px;'>{badges}</div>
+                <div class='action-section' style='border-left-color: {color};'>
+                    <div class='action-header'>
+                        <span>📢 신규 진입 시나리오</span>
+                        <span>{p['time']}</span>
+                    </div>
+                    <div style='color:#eee; line-height:1.6;'>{p['msg']}</div>
+                    <div class='timeline-box'>
+                        <div>🔵 진입: <b>{p['prices'][0]:,}원</b></div>
+                        <div>🔴 익절: <b>{p['prices'][1]:,}원</b></div>
+                        <div style='color:#FF4444;'>🚫 손절: <b>{p['prices'][2]:,}원</b></div>
+                    </div>
+                </div>
             </div>
             """, unsafe_allow_html=True)
+            with st.expander(f"🔍 {r['name']} - Deep Dive"):
+                m = r['m']
+                st.markdown(f"""
+                <div style='display:grid; grid-template-columns: repeat(2, 1fr); gap:10px; font-size:12px; color:#ccc;'>
+                    <div>📐 Omega: <b style='color:#fff; float:right;'>{m['omega']:.2f}</b></div>
+                    <div>🌊 VPIN: <b style='color:#fff; float:right;'>{m['vpin']:.2f}</b></div>
+                    <div>⚡ Hawkes: <b style='color:#fff; float:right;'>{m['hawkes']:.2f}</b></div>
+                    <div>⚖️ OBI: <b style='color:#fff; float:right;'>{m['obi']:.2f}</b></div>
+                    <div>📈 Hurst: <b style='color:#fff; float:right;'>{m['hurst']:.2f}</b></div>
+                    <div>💰 Kelly: <b style='color:#fff; float:right;'>{m['kelly']:.2f}</b></div>
+                </div>
+                """, unsafe_allow_html=True)
+
+    with tab1:
+        if st.session_state.sc_list: render_rec(st.session_state.sc_list, "#FFFF00")
+        else: st.info("초단타 조건(수급 폭발)을 만족하는 종목이 없습니다.")
+    
+    with tab2:
+        if st.session_state.sw_list: render_rec(st.session_state.sw_list, "#00C9FF")
+        else: st.info("추세추종 조건(추세 지속)을 만족하는 종목이 없습니다.")
 
 else:
     if not st.session_state.get('running'):
-        st.info("👆 [출격] 버튼을 누르면 현재 자산 상황에 맞춘 최적의 솔루션을 제공합니다.")
+        st.info("👆 [출격] 버튼을 누르면 자산 기반의 최적 포트폴리오 전략을 수립합니다.")
