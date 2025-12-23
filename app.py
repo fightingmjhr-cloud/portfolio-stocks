@@ -31,7 +31,7 @@ def load_top50_data():
     except: return pd.DataFrame()
 
 # -----------------------------------------------------------------------------
-# [1] CORE ENGINE CLASS
+# [1] CORE ENGINE: LOGIC & TEXT GENERATION
 # -----------------------------------------------------------------------------
 class SingularityEngine:
     def __init__(self):
@@ -60,6 +60,7 @@ class SingularityEngine:
 
         if m['vpin'] > 0.6: score -= 15; tags.append({'label': '독성 매물', 'val': '-15', 'type': 'bad'})
         if m['es'] < -0.15: score -= 15; tags.append({'label': '폭락 징후', 'val': '-15', 'type': 'bad'})
+        if m['betti'] == 1: score -= 10; tags.append({'label': '구조 붕괴', 'val': '-10', 'type': 'bad'})
         
         if mode == "scalping":
             if m['hawkes'] > 2.5: score += 40; tags.append({'label': '🚀 퍼펙트 수급', 'val': '+40', 'type': 'best'})
@@ -71,7 +72,118 @@ class SingularityEngine:
         win_rate = min(0.92, max(0.15, score / 100))
         return win_rate, m, tags
 
-    # [PERSONA REPORT GENERATOR]
+    # [TEXT GENERATOR ENGINE - INFINITE VARIETY]
+    def _generate_text(self, persona, wr, m):
+        # 🐹 HAMZZI (Aggressive, Cute, Quant)
+        if persona == 'hamzzi':
+            intros = ["사장님!!", "대박 사건!", "와우!", "히익!", "저기요...", "빨리 와봐!"]
+            
+            if wr >= 0.75:
+                logic_1 = [
+                    f"<b>[Hawkes {m['hawkes']:.2f}]</b> 수치 봤어? 이건 그냥 불기둥 예약이야! 🔥",
+                    f"<b>[GNN 중심성]</b>이 폭발했어! 시장 돈이 다 여기로 쏠린다구! 💰",
+                    f"<b>[Hurst {m['hurst']:.2f}]</b> 추세 강도가 미쳤어! 관성의 법칙 알지? 🚀"
+                ]
+                logic_2 = [
+                    "지금 안 사면 오늘 밤 이불킥 각이야!",
+                    "이런 기회는 1년에 몇 번 안 와! 야수의 심장을 꺼내!",
+                    "풀레버리지 땡겨서 인생 역전 가보자구!"
+                ]
+                act = [
+                    "시장가로 긁어! ⚡ 고민은 배송을 늦출 뿐!",
+                    "영혼까지 끌어모아 풀매수! 💎 목표가까지 숨 참아!",
+                    "지금 당장 탑승! 문 닫히기 전에 들어가! 🏃‍♂️💨"
+                ]
+            elif wr >= 0.55:
+                logic_1 = [
+                    f"음~ <b>[Vol Surface]</b>가 꿈틀대는데? 변동성 먹기 딱 좋은 날이야! 🌊",
+                    f"<b>[OBI]</b> 호가창 보니까 매수세가 살아있어! 단타 치기 좋은 놀이터네!",
+                    f"나쁘지 않아! <b>[Omega 파동]</b>도 안정적이고... 한번 들어가볼까? 🐹"
+                ]
+                logic_2 = [
+                    "근데 몰빵은 좀 무섭고, 발만 담가보자!",
+                    "오르면 불타기(Pyramiding) 하고 내리면 튀는 거야!",
+                    "딱 기계적으로 대응하면 쏠쏠할 것 같아!"
+                ]
+                act = [
+                    "정찰병 진입! 🪖 간 보다가 슈팅 나오면 불타기!",
+                    "일단 30%만 사보자. 🍰 상황 봐서 더 담아!",
+                    "트레일링 스탑(Trailing Stop) 걸고 진입! 🛡️"
+                ]
+            else:
+                logic_1 = [
+                    f"으악! <b>[VPIN {m['vpin']:.2f}]</b> 경고등 켜졌어! 기관 형들이 폭탄 던진다! 💣",
+                    f"<b>[ES(꼬리위험)]</b> 수치가 최악이야... 이거 건드리면 계좌 녹아! 🫠",
+                    f"차트가 무너졌어... <b>[Betti Number]</b> 위상 구조가 깨졌다구! 📉"
+                ]
+                logic_2 = [
+                    "지금 들어가면 한강 물 온도 체크하러 가야 돼...",
+                    "이건 용기가 아니라 만용이야! 절대 안 돼!",
+                    "돔황챠!!! 🏃‍♂️💨 뒤도 돌아보지 마!"
+                ]
+                act = [
+                    "관심 종목 삭제! ❌ 쳐다도 보지 마!",
+                    "보유 중이면 당장 시장가 매도! 📉 탈출이 지능순이야!",
+                    "현금 꽉 쥐고 숨어있어! 🫣 소나기는 피해야지!"
+                ]
+            
+            return f"{random.choice(intros)} {random.choice(logic_1)} {random.choice(logic_2)}", random.choice(act)
+
+        # 🐯 HOJJI (Conservative, Fundamental, Old-school)
+        else: 
+            intros = ["허허,", "음...", "에잉 쯧쯧,", "자네,", "어허!"]
+            
+            if wr >= 0.75:
+                logic_1 = [
+                    f"<b>[내재가치]</b> 대비 저평가 구간이군. <b>[GNN]</b>상 주도주 지위도 확고해. 🏯",
+                    f"수급과 펀더멘털이 '금상첨화(錦上添花)'로구나. <b>[안전마진]</b>이 충분해.",
+                    f"<b>[Hurst]</b> 지수가 견고해. 추세가 쉽게 꺾이지 않을 기세야. 🌊"
+                ]
+                logic_2 = [
+                    "이런 종목은 진득하게 묻어두면 효자 노릇을 할 게야.",
+                    "물 들어올 때 노 저어야지. 과감한 결단이 필요할 때일세.",
+                    "오랜만에 제대로 된 물건을 보았구먼."
+                ]
+                act = [
+                    "비중을 실어보게. 단, 분할 매수는 잊지 말고. ⚖️",
+                    "목표가까지 '우보천리(牛步千里)'의 마음으로 동행하게. 🐂",
+                    "지금 진입해서 연말까지 묻어두게. 📅"
+                ]
+            elif wr >= 0.55:
+                logic_1 = [
+                    f"계륵(鷄肋)일세. 좋아 보이나 <b>[변동성(Vol)]</b>이 너무 심해. 🌊",
+                    f"상승 여력은 있으나 <b>[꼬리 위험(ES)]</b>이 도사리고 있어. 살얼음판이야. ❄️",
+                    f"기술적 반등 구간이나, <b>[펀더멘털]</b> 확신이 부족해. 🤔"
+                ]
+                logic_2 = [
+                    "돌다리도 두들겨 보고 건너라 했네. 신중하게 접근하게.",
+                    "욕심 부리다 체할 수 있어. '과유불급'을 명심하게.",
+                    "방망이를 짧게 잡고 대응하는 게 상책이야."
+                ]
+                act = [
+                    "전체 시드의 10%만 재미로 담아보게. 🧪",
+                    "철저히 분할 매수로 접근하고, 아니면 바로 자르게. ✂️",
+                    "관망하다가 지지선 확인 후 들어가는 게 '만수무강'의 길일세. 🐢"
+                ]
+            else:
+                logic_1 = [
+                    f"사상누각(砂上樓閣)이야! <b>[독성 매물(VPIN)]</b>이 쏟아지는데 어찌 버티겠나! 🏚️",
+                    f"기초 체력이 부실해. <b>[Going Concern]</b> 이슈가 불거질 수 있어. ⚠️",
+                    f"떨어지는 칼날일세. <b>[Role Reversal]</b> 저항이 너무 강해. ⚔️"
+                ]
+                logic_2 = [
+                    "지금 들어가는 건 불나방이나 다름없어. 타 죽고 싶은가?",
+                    "수업료 내기 싫으면 HTS 끄고 산책이나 다녀오게.",
+                    "돈을 허공에 뿌릴 셈인가? 정신 차리게!"
+                ]
+                act = [
+                    "쳐다도 보지 말게. 현금이 곧 종목이야. 🛡️",
+                    "당장 매도하고 우량주로 갈아타게. 🔄",
+                    "절대 매수 금지. 내 말 명심하게. ⛔"
+                ]
+
+            return f"{random.choice(intros)} {random.choice(logic_1)} {random.choice(logic_2)}", random.choice(act)
+
     def generate_report(self, mode, price, m, wr, cash, current_qty, target_return):
         if mode == "scalping":
             vol = m['vol_surf'] * 0.04
@@ -79,47 +191,65 @@ class SingularityEngine:
         else:
             entry = price; target = int(price * (1 + target_return/100)); stop = int(price * 0.93)
 
-        adjusted_kelly = m['kelly'] * (wr / 0.8) if wr < 0.8 else m['kelly']
-        alloc_cash = cash * adjusted_kelly
-        can_buy_qty = int(alloc_cash / price) if price > 0 else 0
+        h_an, h_act = self._generate_text('hamzzi', wr, m)
+        t_an, t_act = self._generate_text('hojji', wr, m)
 
-        # 🐹 HAMZZI (Aggressive)
-        h_style = "border: 2px solid #FFAA00; color: #FFAA00;"
-        if wr >= 0.75:
-            h_brief = f"사장님! <b>[Hawkes {m['hawkes']:.2f}]</b> 터졌어! 이건 로켓이야! 🚀"
-            h_act = f"쫄지마! <b>{can_buy_qty}주</b> 긁어! <b>{target:,}원</b> 간다!"
-            h_why = "변동성(Vol)이 춤을 춰! 지금 들어가야 베타(Beta)를 먹지!"
-        elif wr >= 0.55:
-            h_brief = f"음~ <b>[Hurst {m['hurst']:.2f}]</b> 추세 살아있네! 단타 놀이터야!"
-            h_act = f"일단 <b>{int(can_buy_qty/2)}주</b> 담가보고 불타기 가즈아! 🔥"
-            h_why = "모멘텀이 꿈틀대. 호가창(OBI) 보면서 짧게 먹자!"
-        else:
-            h_brief = f"으악! 돔황챠!! 😱 <b>[VPIN]</b> 폭탄 돌리기 중이야!"
-            h_act = "절대 사지 마! 있는 것도 다 던져! 🏃‍♂️💨"
-            h_why = "수급이 죽었어. 이런 건 쳐다보는 거 아니야."
-
-        # 🐯 HOJJI (Conservative)
-        t_style = "border: 2px solid #FF4444; color: #FF4444;"
-        if wr >= 0.75:
-            t_brief = f"허허, <b>[GNN]</b> 중심성이 좋군. 시장의 주도주일세."
-            t_act = f"안전마진 확보됐으니 <b>{can_buy_qty}주</b> 진입해봐."
-            t_why = "펀더멘털과 수급이 조화로워. 편안한 자리야."
-        elif wr >= 0.55:
-            t_brief = f"계륵일세. 🐅 <b>[변동성]</b>이 너무 커서 멀미 나겠어."
-            t_act = f"욕심 버리고 <b>{int(can_buy_qty/2)}주</b>만 분할로 담게."
-            t_why = "상승 여력은 있으나 꼬리 위험이 도사리고 있어."
-        else:
-            t_brief = f"에잉 쯧쯧! 😡 <b>[독성 매물]</b>이 넘쳐나는구먼!"
-            t_act = "관망하게. 쉬는 것도 투자야. 현금 지켜!"
-            t_why = "떨어지는 칼날이야. 바닥인 줄 알았는데 지하실 본다."
+        # Why Text (Logical Rationale)
+        h_why = f"<b>[Vol Surface]</b>가 {m['vol_surf']:.2f}로 변동성이 살아있고, <b>[Hawkes]</b> 모멘텀이 {m['hawkes']:.2f}로 수급이 붙어주니까 단기 슈팅 가능성 매우 높음!"
+        t_why = f"<b>[GNN]</b> 중심성이 {m['gnn']:.2f}이나, <b>[VPIN]</b> {m['vpin']:.2f}를 고려할 때 리스크 대비 기대수익률(Risk-Reward Ratio)을 철저히 계산해야 함."
 
         return {
             "prices": (entry, target, stop),
-            "hamzzi": {"brief": h_brief, "act": h_act, "why": h_why, "style": h_style},
-            "hojji": {"brief": t_brief, "act": t_act, "why": t_why, "style": t_style}
+            "hamzzi": {"brief": h_an, "act": h_act, "why": h_why, "style": "border: 2px solid #FFAA00; color: #FFAA00;"},
+            "hojji": {"brief": t_an, "act": t_act, "why": t_why, "style": "border: 2px solid #FF4444; color: #FF4444;"}
         }
 
-    # [EASY EXPLANATION]
+    # [PORTFOLIO DEEP DIAGNOSIS & REBALANCING]
+    def diagnose_portfolio(self, portfolio, cash):
+        asset_val = sum([s['price'] * s['qty'] for s in portfolio])
+        total_val = asset_val + cash
+        cash_ratio = (cash / total_val * 100) if total_val > 0 else 100
+        
+        # Metrics Simulation
+        beta = np.random.uniform(0.5, 2.0)
+        sharpe = np.random.uniform(0.5, 3.0)
+        mdd = np.random.uniform(-5.0, -35.0)
+        corr = np.random.uniform(0.1, 0.9) # Correlation
+        
+        # HAMZZI (Rebalancing for Aggression)
+        h_rebal = ""
+        if cash_ratio > 50:
+            h_rebal = "👉 <b>[리밸런싱]</b>: 현금 30%를 당장 <b>[TQQQ]</b>나 <b>[코스닥 레버리지]</b>에 태워! 현금은 쓰레기야!"
+        elif beta < 1.0:
+            h_rebal = "👉 <b>[리밸런싱]</b>: 변동성 없는 노잼 주식(Beta < 0.5) 다 팔고, <b>[주도 섹터]</b> 대장주로 교체 매매 고고!"
+        else:
+            h_rebal = "👉 <b>[유지]</b>: 아주 좋아! 이대로 <b>[불타기]</b> 하면서 수익 극대화하자!"
+
+        h_msg = f"""
+        <div style='margin-bottom:8px;'>사장님! 포트폴리오 <b>[Beta]</b>가 {beta:.2f}야! { "🔥 야수 인정!" if beta > 1.2 else "🐢 너무 굼벵이야!" }</div>
+        <div style='margin-bottom:8px;'><b>[Sharpe Ratio]</b>는 {sharpe:.2f}로 가성비 { "찢었다!" if sharpe > 1.5 else "나쁘지 않아." }</div>
+        <div style='background:#332200; padding:8px; border-radius:5px; margin-top:5px;'>{h_rebal}</div>
+        """
+
+        # HOJJI (Rebalancing for Safety)
+        t_rebal = ""
+        if cash_ratio < 20:
+            t_rebal = "👉 <b>[리밸런싱]</b>: 위험해! 수익 난 종목 50% 차익 실현해서 <b>[현금]</b>을 최소 30%까지 확보하게."
+        elif mdd < -20:
+            t_rebal = "👉 <b>[리밸런싱]</b>: <b>[MDD]</b>가 너무 깊어. 잡주들은 손절하고 <b>[배당주]</b>나 <b>[국채]</b>를 편입해서 변동성을 줄여."
+        elif corr > 0.7:
+            t_rebal = "👉 <b>[리밸런싱]</b>: 종목들이 다 같이 움직여(상관계수 High). 섹터가 겹치니 일부는 정리해서 <b>[분산 투자]</b> 하게."
+        else:
+            t_rebal = "👉 <b>[유지]</b>: 자산 배분이 적절하군. 이대로 <b>[바이 앤 홀드]</b> 전략을 유지하게."
+
+        t_msg = f"""
+        <div style='margin-bottom:8px;'>자네 계좌의 <b>[MDD]</b>가 {mdd:.1f}%일세. { "잠은 오나?" if mdd < -20 else "관리는 잘 했구먼." }</div>
+        <div style='margin-bottom:8px;'>종목 간 <b>[상관계수]</b>가 {corr:.2f}로 { "위험 분산이 안 됐어." if corr > 0.7 else "적절히 분산됐군." }</div>
+        <div style='background:#330000; padding:8px; border-radius:5px; margin-top:5px;'>{t_rebal}</div>
+        """
+
+        return h_msg, t_msg
+
     def explain_terms(self):
         return {
             "hamzzi": """
@@ -127,52 +257,38 @@ class SingularityEngine:
             <b>🐹 햄찌의 족집게 과외:</b><br>
             • <b>Hawkes (호크스):</b> 인기 폭발 지수! 높으면 사람들이 "와!" 하고 몰려드는 거야! 🎉<br>
             • <b>Vol Surface (볼 서페이스):</b> 파도 높이! 높으면 서핑 꿀잼(수익)이지만 물 먹을 수도 있어! 🌊<br>
-            • <b>Hurst (허스트):</b> 황소 고집! 한 번 가던 방향으로 계속 가려는 성질이야! 💪
+            • <b>Hurst (허스트):</b> 황소 고집! 한 번 가던 방향으로 계속 가려는 성질이야! 💪<br>
+            • <b>Beta (베타):</b> 시장 형님이 1만큼 움직일 때 내껀 얼마나 춤추느냐! 높으면 화끈하지! 🔥
             </div>
             """,
             "hojji": """
             <div style='font-size:13px; line-height:1.6; color:#eee;'>
             <b>🐯 호찌의 훈장님 해설:</b><br>
-            • <b>VPIN (독성 유동성):</b> 기관들이 정보 우위를 이용해 개미에게 물량을 넘기는 수치일세.<br>
-            • <b>GNN (그래프 신경망):</b> 이 종목이 시장 내에서 얼마나 중심적인 '대장'인지 보여주지.<br>
-            • <b>Safety Margin (안전마진):</b> 내재가치보다 싸게 사는 것. 투자의 기본이야.
+            • <b>VPIN (독성 유동성):</b> 정보 우위를 가진 기관의 기습적 매도 물량일세. 조심하게.<br>
+            • <b>GNN (그래프 신경망):</b> 이 종목이 시장 생태계에서 얼마나 중요한 '대장'인지 보여주지.<br>
+            • <b>Sharpe Ratio:</b> 위험 한 단위당 얼마나 알짜배기 수익을 냈느냐는 '가성비' 지표야.<br>
+            • <b>MDD (최대낙폭):</b> 고점에서 얼마나 처박혔느냐... 자네 멘탈이 버틸 수 있는 한계선이지.
             </div>
             """
         }
 
-    # [PORTFOLIO DEEP DIAGNOSIS]
-    def diagnose_portfolio(self, portfolio, cash):
-        asset_val = sum([s['price'] * s['qty'] for s in portfolio])
-        total_val = asset_val + cash
-        cash_ratio = (cash / total_val * 100) if total_val > 0 else 100
-        
-        beta = np.random.uniform(0.5, 2.0)
-        sharpe = np.random.uniform(0.5, 3.0)
-        mdd = np.random.uniform(-5.0, -35.0)
-        
-        # 🐹 HAMZZI (Aggressive View)
-        if cash_ratio > 70:
-            h_msg = f"사장님! 현금이 <b>{cash_ratio:.1f}%</b>나 돼? 😱 <b>[Cash Drag]</b> 때문에 수익률 갉아먹고 있어! <b>[Beta]</b>를 높여서 시장을 이겨야지! 지금 당장 주도주 태워! 🔥"
-        elif beta < 0.8:
-            h_msg = f"포트폴리오가 너무 얌전해(Beta {beta:.2f})... 🐢 재미없어! <b>[레버리지]</b> 좀 섞어서 화끈하게 가보자구! <b>[Sharpe]</b> 지수 올리려면 위험을 감수해야지!"
-        else:
-            h_msg = f"오! <b>[Beta {beta:.2f}]</b> 아주 훌륭해! 🐹 야수의 심장을 가졌구나? 이대로 <b>[Momentum]</b> 즐기면서 끝까지 발라먹자! 🚀"
-
-        # 🐯 HOJJI (Conservative View)
-        if cash_ratio < 10:
-            t_msg = f"자네 미쳤나? 현금이 <b>{cash_ratio:.1f}%</b>밖에 없어? 😡 하락장 오면 <b>[MDD {mdd:.1f}%]</b> 맞고 깡통 찰 텐가? 과유불급이라 했거늘! 당장 현금 비중 늘리게!"
-        elif mdd < -20:
-            t_msg = f"포트폴리오 <b>[MDD]</b>가 {mdd:.1f}%야. 리스크 관리가 전혀 안 되고 있어. 🐯 변동성 큰 잡주는 정리하고 <b>[배당주]</b>나 <b>[채권]</b>을 섞어서 유비무환의 자세를 갖추게."
-        else:
-            t_msg = f"음, 현금 비중도 적절하고 <b>[MDD]</b> 관리도 잘 되고 있군. 📚 하지만 방심은 금물이야. 돌다리도 두들겨 보라고, <b>[펀더멘털]</b>을 수시로 체크하게."
-
-        return h_msg, t_msg
-
     def hamzzi_nagging(self):
-        return "🐹 햄찌의 잔소리", "차트가 부르는데 왜 안 사? 🚀"
+        t = random.choice(["🐹 햄찌의 잔소리", "🐹 햄찌의 긴급 타전", "🐹 햄찌의 꿀팁"])
+        m = random.choice([
+            "차트가 말을 거는데 왜 대답을 안 해? 📞 당장 매수 버튼 눌러!",
+            "인생은 타이밍이야! 지금이 바로 그 타이밍이라구! ⏰",
+            "쫄지마! 쫄면 지는 거야! 야수의 심장으로 풀매수! 🔥"
+        ])
+        return t, m
 
     def hojji_nagging(self):
-        return "🐯 호찌의 호통", "공부 안 하고 사면 투기야! 📚"
+        t = random.choice(["🐯 호찌의 호통", "🐯 호찌의 훈계", "🐯 호찌의 명언"])
+        m = random.choice([
+            "공부 안 하고 사는 건 투기야! 재무제표는 읽어봤나? 📚",
+            "급할수록 돌아가라 했어. 현금도 소중한 종목임을 잊지 말게. 🛡️",
+            "일희일비하지 마. 주식은 머리가 아니라 엉덩이로 버티는 걸세. 🧘‍♂️"
+        ])
+        return t, m
 
 # -----------------------------------------------------------------------------
 # [2] UI & RENDERERS
@@ -183,19 +299,20 @@ st.markdown("""
 <style>
     .stApp { background-color: #050505; color: #e0e0e0; font-family: 'Pretendard', sans-serif; }
     .app-title { text-align: center; font-size: 36px; font-weight: 900; color: #fff; padding: 30px 0; text-shadow: 0 0 20px rgba(0,201,255,0.8); }
+    .stTextInput input, .stNumberInput input, .stSelectbox div[data-baseweb="select"] > div { background-color: #1a1f26 !important; color: #fff !important; border: 1px solid #444 !important; border-radius: 8px; }
     .stButton>button { width: 100%; border-radius: 12px; font-weight: 800; height: 50px; background: linear-gradient(135deg, #00C9FF, #92FE9D); border: none; color: #000; transition: 0.3s; }
     .stButton>button:hover { transform: scale(1.02); }
-    .stock-card { background: #111; border-radius: 16px; padding: 20px; margin-bottom: 20px; border: 1px solid #333; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
-    .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .stock-card { background: #111; border-radius: 16px; padding: 0; margin-bottom: 30px; border: 1px solid #333; box-shadow: 0 4px 20px rgba(0,0,0,0.5); overflow: hidden; }
+    .card-header { padding: 15px 20px; background: #1e1e1e; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; }
     .stock-name { font-size: 24px; font-weight: bold; color: #fff; }
     .win-rate { font-size: 14px; font-weight: bold; padding: 5px 12px; border-radius: 20px; background: #222; }
-    .persona-box { padding: 15px; border-radius: 12px; margin-top: 10px; background: #1a1a1a; }
-    .persona-title { font-weight: bold; margin-bottom: 8px; font-size: 16px; }
+    .persona-box { padding: 20px; font-size: 14px; line-height: 1.6; color: #eee; }
+    .persona-title { font-weight: bold; margin-bottom: 12px; font-size: 16px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px; }
     .port-dash { background: #1a1a1a; padding: 20px; border-radius: 12px; margin-bottom: 30px; border: 1px solid #444; }
     .tag { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 11px; margin-right: 5px; font-weight: bold; color: #000; }
     .tag-base { background: #888; } .tag-best { background: #00FF00; } .tag-good { background: #00C9FF; } .tag-bad { background: #FF4444; color: #fff; }
-    .timeline { display: flex; justify-content: space-between; background: #000; padding: 10px; border-radius: 8px; margin-top: 10px; border: 1px solid #333; }
-    .t-item { text-align: center; } .t-val { font-weight: bold; color: #fff; }
+    .timeline { display: flex; justify-content: space-between; background: #000; padding: 15px 25px; border-top: 1px solid #333; }
+    .t-item { text-align: center; } .t-val { font-weight: bold; font-size: 15px; margin-top: 4px; display: block;}
     .rank-ribbon { position: absolute; top: 0; left: 0; padding: 5px 12px; font-size: 12px; font-weight: bold; color: #fff; background: linear-gradient(45deg, #FF416C, #FF4B2B); border-bottom-right-radius: 12px; z-index: 5; }
     .prog-bg { background: #333; height: 8px; border-radius: 4px; width: 100%; }
     .prog-fill { height: 100%; border-radius: 4px; transition: width 0.5s; }
@@ -235,10 +352,11 @@ stock_names = get_stock_list()
 def run_my_diagnosis():
     engine = SingularityEngine(); market_data = load_top50_data(); my_res = []
     
+    # Portfolio Deep Diagnosis (Text Generation)
     h_port, t_port = engine.diagnose_portfolio(st.session_state.portfolio, st.session_state.cash)
     st.session_state.port_analysis = {'hamzzi': h_port, 'hojji': t_port}
     
-    with st.spinner("내 포트폴리오 정밀 해부 중..."):
+    with st.spinner("내 포트폴리오 정밀 해부 및 리밸런싱 전략 수립 중..."):
         for s in st.session_state.portfolio:
             if not s['name']: continue
             mode = "scalping" if s['strategy'] == "초단타" else "swing"
@@ -250,6 +368,7 @@ def run_my_diagnosis():
                 except: pass
             
             wr, m, tags = engine.run_diagnosis(s['name'], mode)
+            # Generate Rich HTML Text Plan
             plan = engine.generate_report(mode, price, m, wr, st.session_state.cash, s['qty'], st.session_state.target_return)
             pnl = ((price - s['price'])/s['price']*100) if s['price']>0 else 0
             my_res.append({'name': s['name'], 'price': price, 'pnl': pnl, 'win': wr, 'm': m, 'tags': tags, 'plan': plan})
@@ -322,7 +441,7 @@ with st.expander("💰 내 자산 및 포트폴리오 관리", expanded=True):
         st.rerun()
     auto_my = st.selectbox("⏱️ 내 종목 자동진단 주기", list(TIME_OPTS.keys()), index=0, key="tm_my", label_visibility="collapsed")
 
-# [RENDER CARD FUNCTION]
+# [RENDER CARD FUNCTION - HTML ONLY]
 def render_full_card(d, idx=None, is_rank=False):
     engine = SingularityEngine()
     p = d['plan']
@@ -355,10 +474,10 @@ def render_full_card(d, idx=None, is_rank=False):
         h = p['hamzzi']
         st.markdown(f"""
         <div class='persona-box' style='{h['style']}'>
-            <div class='persona-title'>🐹 햄찌 (High Risk Quant)</div>
+            <div class='persona-title'>🐹 햄찌의 야수 본능 (인생 한방! 🔥)</div>
             <div style='margin-bottom:10px;'>{h['brief']}</div>
             <div style='background:#222; padding:10px; border-radius:8px; margin-bottom:10px;'><b>💡 행동 지침:</b> {h['act']}</div>
-            <div style='font-size:13px; color:#aaa;'><b>🎯 이유:</b> {h['why']}</div>
+            <div style='font-size:13px; color:#aaa; margin-top:10px;'><b>🎯 논리적 근거:</b> {h['why']}</div>
         </div>
         """, unsafe_allow_html=True)
     
@@ -366,10 +485,10 @@ def render_full_card(d, idx=None, is_rank=False):
         t = p['hojji']
         st.markdown(f"""
         <div class='persona-box' style='{t['style']}'>
-            <div class='persona-title'>🐯 호찌 (Fundamental Value)</div>
+            <div class='persona-title'>🐯 호찌의 유비무환(有備無患) 정신 🛡️</div>
             <div style='margin-bottom:10px;'>{t['brief']}</div>
             <div style='background:#222; padding:10px; border-radius:8px; margin-bottom:10px;'><b>💡 어르신 말씀:</b> {t['act']}</div>
-            <div style='font-size:13px; color:#aaa;'><b>🎯 이유:</b> {t['why']}</div>
+            <div style='font-size:13px; color:#aaa; margin-top:10px;'><b>🎯 논리적 근거:</b> {t['why']}</div>
         </div>
         """, unsafe_allow_html=True)
         
@@ -429,11 +548,11 @@ if st.session_state.my_diagnosis:
             <div style='display:grid; grid-template-columns: 1fr 1fr; gap:15px;'>
                 <div style='background:#222; padding:15px; border-radius:8px; border:1px solid #FFAA00;'>
                     <div style='color:#FFAA00; font-weight:bold; margin-bottom:5px;'>🐹 햄찌의 야수 본능 (인생 한방! 🔥)</div>
-                    <div style='font-size:13px; color:#ddd;'>{pa['hamzzi']}</div>
+                    <div style='font-size:13px; color:#ddd; line-height:1.5;'>{pa['hamzzi']}</div>
                 </div>
                 <div style='background:#222; padding:15px; border-radius:8px; border:1px solid #FF4444;'>
                     <div style='color:#FF4444; font-weight:bold; margin-bottom:5px;'>🐯 호찌의 유비무환(有備無患) 정신 🛡️</div>
-                    <div style='font-size:13px; color:#ddd;'>{pa['hojji']}</div>
+                    <div style='font-size:13px; color:#ddd; line-height:1.5;'>{pa['hojji']}</div>
                 </div>
             </div>
         </div>
