@@ -40,6 +40,7 @@ class SingularityEngine:
         pass
 
     def _calculate_metrics(self, name, mode):
+        # 데이터 일관성: 종목명+시간(시) 기준 시드 고정
         unique_key = f"{name}-{mode}-{time.strftime('%Y%m%d-%H')}"
         seed_val = zlib.crc32(unique_key.encode())
         np.random.seed(seed_val)
@@ -92,12 +93,10 @@ class SingularityEngine:
 
     # [PERSONA REPORT GENERATOR]
     def generate_report(self, mode, price, m, wr, cash, current_qty, target_return):
-        # Base Calculation
         adjusted_kelly = m['kelly'] * (wr / 0.8) if wr < 0.8 else m['kelly']
         alloc_cash = cash * adjusted_kelly
         can_buy_qty = int(alloc_cash / price) if price > 0 else 0
         
-        # Targets
         if mode == "scalping":
             vol = m['vol_surf'] * 0.04
             entry = int(price * (1 - vol))
@@ -107,42 +106,38 @@ class SingularityEngine:
             target = int(price * (1 + target_return/100))
             stop = int(price * 0.93)
 
-        # ---------------------------------------------------------
-        # 🐹 HAMZZI (High Risk, Quant, Cute)
-        # ---------------------------------------------------------
+        # 🐹 HAMZZI (High Risk)
         h_style = "border: 2px solid #FFAA00; color: #FFAA00;"
         if wr >= 0.75:
-            h_brief = f"사장님 대박!! 🎉 <b>[수급(Hawkes) {m['hawkes']:.2f}]</b> 터졌어! 이건 그냥 로켓이야! 🚀 지금 안 사면 바보라구!"
+            h_brief = f"사장님 대박!! 🎉 <b>[수급(Hawkes) {m['hawkes']:.2f}]</b> 터졌어! 이건 그냥 로켓이야! 🚀"
             h_act = f"쫄지마! <b>{can_buy_qty}주</b> 시장가로 긁어! <b>{target:,}원</b> 가면 소고기 먹자! 🥩"
             h_why_t = f"볼린저 밴드 찢고 우주 갈 기세야! <b>[Vol Surface]</b>가 확장이니까 오버슈팅 노리자구!"
             h_why_s = f"근데 <b>{stop:,}원</b> 깨지면 <b>[VPIN]</b> 터져서 한강 가야돼... 😭 칼같이 튀어!"
         elif wr >= 0.55:
-            h_brief = f"음~ 나쁘지 않아! 🐹 <b>[Hurst {m['hurst']:.2f}]</b> 보니까 추세는 살아있어! 단타 치기 딱 좋은 놀이터네!"
+            h_brief = f"음~ 나쁘지 않아! 🐹 <b>[Hurst {m['hurst']:.2f}]</b> 보니까 추세는 살아있어!"
             h_act = f"일단 <b>{int(can_buy_qty/2)}주</b>만 '정찰병' 보내보자! 간 보다가 불타기 가즈아! 🔥"
             h_why_t = f"기술적 반등 구간이야. <b>[OBI]</b> 매수벽 믿고 짧게 먹고 나오자!"
             h_why_s = f"<b>{stop:,}원</b> 밀리면 <b>[GNN]</b> 중심성 깨져서 왕따 돼... 미련 버려!"
         else:
-            h_brief = f"으악! 돔황챠!! 😱 <b>[독성 매물(VPIN)]</b> 냄새가 진동해! 이거 건드리면 손목 날아가!"
+            h_brief = f"으악! 돔황챠!! 😱 <b>[독성 매물(VPIN)]</b> 냄새가 진동해!"
             h_act = "절대 사지 마! 있는 것도 다 던져! 🏃‍♂️💨 현금 들고 팝콘이나 먹자 🍿"
             h_why_t = "목표가? 그런 거 없어. 지금은 생존이 목표야!"
             h_why_s = "지옥 문 열리기 직전이야. 뒤도 돌아보지 마!"
 
-        # ---------------------------------------------------------
-        # 🐯 TIGER (Conservative, Fundamental, Old-school)
-        # ---------------------------------------------------------
+        # 🐯 TIGER (Conservative)
         t_style = "border: 2px solid #FF4444; color: #FF4444;"
         if wr >= 0.75:
-            t_brief = f"허허, 물건이구먼. 🐯 <b>[추세 강도]</b>가 견고해. '괄목상대(刮目相對)'할 만한 상승 초입이야."
+            t_brief = f"허허, 물건이구먼. 🐯 <b>[추세 강도]</b>가 견고해. '괄목상대'할 만한 상승 초입이야."
             t_act = f"기회가 왔을 때 잡는 게 고수지. <b>{can_buy_qty}주</b> 정도 진입해서 진득하게 기다려보게."
             t_why_t = f"펀더멘털과 수급의 조화가 이루어졌어. <b>{target:,}원</b>까지는 '순풍에 돛 단 배'처럼 갈 게야."
-            t_why_s = f"허나 자만은 금물. <b>{stop:,}원</b>은 지켜야 할 '마지노선'이야. 원칙을 어기면 필패(必敗)하네."
+            t_why_s = f"허나 자만은 금물. <b>{stop:,}원</b>은 지켜야 할 '마지노선'이야. 원칙을 어기면 필패하네."
         elif wr >= 0.55:
-            t_brief = f"음... 계륵(鷄肋)일세. 🐅 좋아 보이긴 하나 <b>[꼬리 위험]</b>이 도사리고 있어. 돌다리도 두들겨 보고 건너게."
+            t_brief = f"음... 계륵(鷄肋)일세. 🐅 좋아 보이긴 하나 <b>[꼬리 위험]</b>이 도사리고 있어."
             t_act = f"욕심 부리지 말고 <b>{int(can_buy_qty/2)}주</b>만 분할로 담아. '분산 투자'만이 살길이야."
-            t_why_t = f"상승 여력은 있으나 저항이 만만치 않아. 적당히 먹고 나오는 '지족(知足)'의 지혜가 필요해."
-            t_why_s = f"<b>{stop:,}원</b>이 무너지면 추세가 꺾이는 거야. 미련 갖지 말고 '읍참마속'의 심정으로 자르게."
+            t_why_t = f"상승 여력은 있으나 저항이 만만치 않아. 적당히 먹고 나오는 '지족'의 지혜가 필요해."
+            t_why_s = f"<b>{stop:,}원</b>이 무너지면 추세가 꺾이는 거야. 미련 갖지 말고 자르게."
         else:
-            t_brief = f"에잉 쯧쯧! 😡 사상누각(砂上樓閣)이야! 기초가 부실한데 어찌 오르겠나! 투기가 아니라 투자를 하란 말이야!"
+            t_brief = f"에잉 쯧쯧! 😡 사상누각이야! 기초가 부실한데 어찌 오르겠나!"
             t_act = "관망하게. 쉬는 것도 투자야. 괜히 들어가서 수업료 내지 말고 공부나 더 하게."
             t_why_t = "지금 들어가는 건 불나방이나 다름없어."
             t_why_s = "떨어지는 칼날일세. 바닥인 줄 알았는데 지하실 구경하게 될 거야."
@@ -153,37 +148,85 @@ class SingularityEngine:
             "tiger": {"brief": t_brief, "act": t_act, "why_t": t_why_t, "why_s": t_why_s, "style": t_style}
         }
 
-    # [ADVISORS]
+    # [용어 통역사]
+    def explain_term(self, persona):
+        if persona == 'hamzzi':
+            return """
+            <div style='background:#222; padding:10px; border-radius:8px; font-size:12px; margin-top:10px; border:1px dashed #555;'>
+            <b>🐹 햄찌의 눈높이 설명:</b><br>
+            • <b>Hawkes (수급 폭발력):</b> 사람들이 "우와!" 하고 몰려드는 정도야! 2.0 넘으면 축제 분위기! 🎉<br>
+            • <b>VPIN (독성 매물):</b> 기관 형님들이 몰래 팔아치우는 나쁜 물량이야! 이거 높으면 도망쳐! 🏃<br>
+            • <b>Hurst (추세 강도):</b> 한 번 방향 잡으면 끝까지 가려는 고집! 높을수록 뚝심 있는 녀석이지!<br>
+            • <b>Omega (파동):</b> 주가 심장박동 같은 거! 일정하면 건강한 건데, 너무 빠르면 심장마비(폭락) 와!
+            </div>
+            """
+        else:
+            return """
+            <div style='background:#222; padding:10px; border-radius:8px; font-size:12px; margin-top:10px; border:1px dashed #555;'>
+            <b>🐯 호랑이의 실전 해설:</b><br>
+            • <b>Hawkes:</b> 매수 주문이 꼬리에 꼬리를 무는 '자기 여진' 현상이다. 수급의 질을 보여주지.<br>
+            • <b>VPIN:</b> 정보 비대칭을 이용한 약탈적 유동성이다. 이 수치가 높으면 설거지 당한다.<br>
+            • <b>Hurst:</b> 주가의 '기억력'이다. 랜덤워크(0.5)보다 높으면 추세추종 전략이 먹힌다는 뜻이지.<br>
+            • <b>GNN:</b> 종목 간의 상관관계를 분석했을 때, 이 놈이 대장(Center)인지 쫄병인지 알려준다.
+            </div>
+            """
+
     def hamzzi_nagging(self, cash, portfolio, market_data):
-        # (기존 로직 유지)
         total_invest = 0; current_val = 0
         for s in portfolio:
             invest = s['price'] * s['qty']
-            cur_p = s['price'] # Simply use buy price if error
+            if s['name'] in market_data['Name'].values: cur_p = int(market_data[market_data['Name'] == s['name']].iloc[0]['Close'])
+            else: cur_p = s['price']
             total_invest += invest; current_val += cur_p * s['qty']
         
         total_asset = cash + current_val
         cash_ratio = (cash / total_asset * 100) if total_asset > 0 else 0
+        pnl_pct = ((current_val - total_invest) / total_invest * 100) if total_invest > 0 else 0
         
         title = "🐹 야수 햄찌의 불타기 특강"
         if cash_ratio > 50:
             intro = "야! 너 바보야? 현금을 왜 놀려? 😤"
-            logic = "변동성(Vol)이 춤을 추는데! 베타(Beta) 태워야지! 쫄보처럼 굴지 마!"
-            advice = "당장 현금 다 털어서 **급등주** 올라타라구! 인생 한 방이야! 🚀"
+            logic = "지금 변동성(Vol)이 춤을 추는데 구경만 할 거야? 베타(Beta)를 태워야지! 쫄보처럼 굴지 마!"
+            advice = "당장 현금 다 털어서 **급등주(High Beta)** 올라타라구! 인생 한 방이야! 🚀"
+        elif pnl_pct < -10:
+            intro = "으앙 물렸어? 🥺 괜찮아! 오히려 좋아! 세일 기간이잖아!"
+            logic = "지금 공포 지수(VIX)가 높아서 그래. 이럴 때가 기회라구! '물타기' 말고 '불타기'로 평단 낮추고 수량 늘려서 탈출하자! 🐹🔥"
+            advice = "레버리지 땡겨서라도 더 사! 기술적 반등 한 번이면 멘징하고도 남아! 쫄지마!"
         else:
-            intro = "오~ 사장님 좀 치는데? 😎"
-            logic = "근데 더 공격적으로 가야 돼! 레버리지 안 써?"
-            advice = "물 들어올 때 노 저어! 풀매수 가즈아!"
+            intro = "아... 계좌가 너무 얌전해. 재미없어! 🥱"
+            logic = "변동성이 없으면 돈을 못 벌어! 거래량 터지는 주도 섹터로 갈아타야지! 남들 다 버는데 구경만 할 거야?"
+            advice = "지금 당장 거래대금 상위 종목 찍어서 몰빵해! 🐹 야수의 심장을 보여줘!"
         return title, f"<div style='font-size:14px;'><b>1. 잔소리:</b> {intro}<br><b>2. 뇌피셜(?):</b> {logic}<br><b style='color:#FFAA00;'>3. 햄찌의 명령:</b> {advice}</div>"
 
     def tiger_nagging(self, cash, portfolio, market_data):
-        # (기존 로직 유지)
+        total_invest = 0; current_val = 0
+        for s in portfolio:
+            invest = s['price'] * s['qty']
+            if s['name'] in market_data['Name'].values: cur_p = int(market_data[market_data['Name'] == s['name']].iloc[0]['Close'])
+            else: cur_p = s['price']
+            total_invest += invest; current_val += cur_p * s['qty']
+        
+        total_asset = cash + current_val
+        cash_ratio = (cash / total_asset * 100) if total_asset > 0 else 0
+        pnl_pct = ((current_val - total_invest) / total_invest * 100) if total_invest > 0 else 0
+
         title = "🐯 호랑이의 유비무환(有備無患) 대호통"
-        msg = "에잉 쯧쯧! 투자는 도박이 아니야! 공부해!"
-        return title, f"<div style='font-size:14px;'><b>1. 호통:</b> 자네 제정신인가?<br><b>2. 훈계:</b> 기본이 안되어있어.<br><b style='color:#FF4444;'>3. 어르신 말씀:</b> 공부하게.</div>"
+        if cash_ratio > 60:
+            intro = "음, 자네 아주 현명하구만. 과유불급(過猶不及)이라 했다. 🐯"
+            logic = "시장이 흉흉할 땐 현금이 왕(Cash is King)이야. 불확실성이 해소될 때까지 기다려."
+            advice = "지금처럼 현금 꽉 쥐고 있다가, PBR 0.5배 밑으로 떨어지는 우량주 나오면 그때 천천히 담아."
+        elif pnl_pct < -5:
+            intro = "거봐라! 소탐대실(小貪大失) 하지 말랬지! 😡"
+            logic = "기업 가치 훼손이 없다면 기회지만, 잡주라면 MDD 관리 안 하면 계좌 녹는다!"
+            advice = "당장 손절해! 그리고 그 돈으로 배당주나 채권 사서 잊어버려."
+        else:
+            intro = "계좌 꼬라지가 왜 이래? 공부는 하고 투자하는 거야? 쯧쯧."
+            logic = "기본적 분석(Fundamental) 없이 차트만 보고 사니까 맨날 제자리걸음이지."
+            advice = "HTS 끄고 사업보고서(DART) 정독해! 아는 기업에만 투자해!"
+        return title, f"<div style='font-size:14px;'><b>1. 호통:</b> {intro}<br><b>2. 훈계:</b> {logic}<br><b style='color:#FF4444;'>3. 어르신 말씀:</b> {advice}</div>"
 
 # -----------------------------------------------------------------------------
-# [3] UI
+# [2] UI SETUP
 # -----------------------------------------------------------------------------
 st.set_page_config(page_title="Tiger&Hamzzi Quant", page_icon="🐯", layout="centered")
 
@@ -234,7 +277,7 @@ st.markdown("""
 
 st.markdown("<div class='app-title'>🐯 Tiger&Hamzzi Quant 🐹</div>", unsafe_allow_html=True)
 
-# [STATE & INIT]
+# [STATE INIT]
 if 'portfolio' not in st.session_state: st.session_state.portfolio = []
 if 'ideal_list' not in st.session_state: st.session_state.ideal_list = []
 if 'sc_list' not in st.session_state: st.session_state.sc_list = []
@@ -249,10 +292,11 @@ if 'l_sep' not in st.session_state: st.session_state.l_sep = 0
 if 'trigger_my' not in st.session_state: st.session_state.trigger_my = False
 if 'trigger_top3' not in st.session_state: st.session_state.trigger_top3 = False
 if 'trigger_sep' not in st.session_state: st.session_state.trigger_sep = False
+if 'market_view_mode' not in st.session_state: st.session_state.market_view_mode = None
 
 stock_names = get_stock_list()
 
-# [EXECUTION FUNCTIONS]
+# [CORE EXECUTION FUNCTIONS]
 def run_my_diagnosis():
     engine = SingularityEngine(); market_data = load_top50_data(); my_res = []
     with st.spinner("내 보유 종목 정밀 해부 중..."):
@@ -280,14 +324,17 @@ def run_market_scan(mode):
         for _, row in market_data.iterrows():
             if pd.isna(row['Close']): continue
             price = int(float(row['Close'])); name = row['Name']
+            
             wr_sc, m_sc, t_sc = engine.run_diagnosis(name, "scalping")
             p_sc = engine.generate_report("scalping", price, m_sc, wr_sc, st.session_state.cash, 0, st.session_state.target_return)
             item_sc = {'name': name, 'price': price, 'win': wr_sc, 'mode': '초단타', 'tags': t_sc, 'plan': p_sc, 'm': m_sc}
             sc.append(item_sc)
+            
             wr_sw, m_sw, t_sw = engine.run_diagnosis(name, "swing")
             p_sw = engine.generate_report("swing", price, m_sw, wr_sw, st.session_state.cash, 0, st.session_state.target_return)
             item_sw = {'name': name, 'price': price, 'win': wr_sw, 'mode': '추세추종', 'tags': t_sw, 'plan': p_sw, 'm': m_sw}
             sw.append(item_sw)
+            
             if wr_sc >= wr_sw: ideal.append(item_sc)
             else: ideal.append(item_sw)
     sc.sort(key=lambda x: x['win'], reverse=True)
@@ -296,59 +343,18 @@ def run_market_scan(mode):
     st.session_state.sc_list = sc[:3]; st.session_state.sw_list = sw[:3]; st.session_state.ideal_list = ideal[:3]
     if mode == 'TOP3': 
         st.session_state.l_top3 = time.time()
+        st.session_state.market_view_mode = 'TOP3'
         st.session_state.trigger_top3 = False
     else: 
         st.session_state.l_sep = time.time()
+        st.session_state.market_view_mode = 'SEPARATE'
         st.session_state.trigger_sep = False
 
-# [UI]
-with st.expander("💰 내 자산 및 포트폴리오 (Personal)", expanded=True):
-    c1, c2, c3 = st.columns(3)
-    with c1: st.session_state.cash = st.number_input("예수금 (KRW)", value=st.session_state.cash, step=100000)
-    with c2: st.session_state.target_return = st.number_input("목표 수익률 (%)", value=st.session_state.target_return, step=1.0)
-    with c3:
-        st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
-        if st.button("➕ 종목 추가", use_container_width=True):
-            st.session_state.portfolio.append({'name': '삼성전자', 'price': 0, 'qty': 0, 'strategy': '추세추종'})
-            st.rerun()
-    st.markdown("---")
-    if st.session_state.portfolio:
-        for i, s in enumerate(st.session_state.portfolio):
-            c1, c2, c3, c4, c5 = st.columns([3.2, 1.8, 1.3, 2.0, 0.4])
-            with c1: 
-                try: idx = stock_names.index(s['name'])
-                except: idx = 0
-                s['name'] = st.selectbox(f"n{i}", stock_names, index=idx, label_visibility="collapsed")
-            with c2: s['price'] = st.number_input(f"p{i}", value=float(s['price']), label_visibility="collapsed")
-            with c3: s['qty'] = st.number_input(f"q{i}", value=int(s['qty']), label_visibility="collapsed")
-            with c4: s['strategy'] = st.selectbox(f"s{i}", ["추세추종", "초단타"], index=0 if s['strategy']=="추세추종" else 1, label_visibility="collapsed")
-            with c5: 
-                if st.button("🗑️", key=f"d{i}"): st.session_state.portfolio.pop(i); st.rerun()
-    else: st.info("보유 종목이 없습니다.")
-
-    st.markdown("<br>", unsafe_allow_html=True)
-    if st.button("📝 내 종목만 진단하기", use_container_width=True):
-        st.session_state.display_mode = 'MY'
-        st.session_state.trigger_my = True
-        st.rerun()
-    auto_my = st.selectbox("⏱️ 내 종목 자동진단 주기", list(TIME_OPTS.keys()), index=0, key="tm_my", label_visibility="collapsed")
-
-    st.markdown("<br>", unsafe_allow_html=True)
-    bc1, bc2 = st.columns(2)
-    with bc1:
-        if st.button("🐹 햄찌의 앙큼상큼 팩트폭격 뀨? ❤️", use_container_width=True):
-            engine = SingularityEngine(); market_data = load_top50_data()
-            title, msg = engine.hamzzi_nagging(st.session_state.cash, st.session_state.portfolio, market_data)
-            st.session_state.adv_msg = f"<div class='hamzzi-box'><div class='hamzzi-title'>{title}</div>{msg}</div>"
-    with bc2:
-        if st.button("🐯 호랑이의 유비무환(有備無患) 대호통", use_container_width=True):
-            engine = SingularityEngine(); market_data = load_top50_data()
-            title, msg = engine.tiger_nagging(st.session_state.cash, st.session_state.portfolio, market_data)
-            st.session_state.adv_msg = f"<div class='tiger-box'><div class='tiger-title'>{title}</div>{msg}</div>"
-    if 'adv_msg' in st.session_state: st.markdown(st.session_state.adv_msg, unsafe_allow_html=True)
-
-# Helper Function: Render Card
+# [HELPER: RENDER CARD (BUG FIXED: engine local instance)]
 def render_full_card(d, idx=None, is_rank=False):
+    # Fix: Instantiate engine locally for the translator
+    engine = SingularityEngine()
+    
     p = d['plan']
     tag_html = "".join([f"<span class='tag tag-{t['type']}'>{t['label']} {t['val']}</span> " for t in d['tags']])
     rank_html = f"<div class='rank-ribbon'>{idx+1}위</div>" if is_rank else ""
@@ -371,9 +377,7 @@ def render_full_card(d, idx=None, is_rank=False):
     </div>
     """, unsafe_allow_html=True)
     
-    # 🌟 NEW: PERSONA TABS
     tab_hamzzi, tab_tiger = st.tabs(["🐹 햄찌의 분석", "🐯 호랑이의 분석"])
-    
     with tab_hamzzi:
         h = p['hamzzi']
         st.markdown(f"""
@@ -387,7 +391,6 @@ def render_full_card(d, idx=None, is_rank=False):
             </div>
         </div>
         """, unsafe_allow_html=True)
-        
     with tab_tiger:
         t = p['tiger']
         st.markdown(f"""
@@ -402,7 +405,6 @@ def render_full_card(d, idx=None, is_rank=False):
         </div>
         """, unsafe_allow_html=True)
 
-    # Common Timeline
     st.markdown(f"""
     <div class='stock-card' style='margin-top:-20px; border-top:none; border-top-left-radius:0; border-top-right-radius:0;'>
         <div class='timeline'>
@@ -425,18 +427,74 @@ def render_full_card(d, idx=None, is_rank=False):
             <div class='hud-item'><span class='hud-label'>켈리비중</span><span class='hud-val'>{m['kelly']:.2f}</span></div>
         </div>
         """, unsafe_allow_html=True)
-        engine = SingularityEngine()
+        # Translator uses local engine instance
         t1, t2 = st.tabs(["🐹 햄찌의 쉬운 설명", "🐯 호랑이의 실전 해설"])
         with t1: st.markdown(engine.explain_term('hamzzi'), unsafe_allow_html=True)
         with t2: st.markdown(engine.explain_term('tiger'), unsafe_allow_html=True)
 
-# [MY DIAGNOSIS RENDER]
+# [UI: PERSONAL PORTFOLIO]
+with st.expander("💰 내 자산 및 포트폴리오 (Personal)", expanded=True):
+    c1, c2, c3 = st.columns(3)
+    with c1: st.session_state.cash = st.number_input("예수금 (KRW)", value=st.session_state.cash, step=100000)
+    with c2: st.session_state.target_return = st.number_input("목표 수익률 (%)", value=st.session_state.target_return, step=1.0)
+    with c3:
+        st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
+        if st.button("➕ 종목 추가", use_container_width=True):
+            st.session_state.portfolio.append({'name': '삼성전자', 'price': 0, 'qty': 0, 'strategy': '추세추종'})
+            st.rerun()
+    st.markdown("---")
+    
+    if st.session_state.portfolio:
+        h1, h2, h3, h4, h5 = st.columns([3.2, 1.8, 1.3, 2.0, 0.4])
+        h1.caption("종목명 (검색/선택)")
+        h2.caption("평단가 (원)")
+        h3.caption("수량")
+        h4.caption("전략")
+        
+        for i, s in enumerate(st.session_state.portfolio):
+            c1, c2, c3, c4, c5 = st.columns([3.2, 1.8, 1.3, 2.0, 0.4])
+            with c1: 
+                try: idx = stock_names.index(s['name'])
+                except: idx = 0
+                s['name'] = st.selectbox(f"n{i}", stock_names, index=idx, label_visibility="collapsed")
+            with c2: s['price'] = st.number_input(f"p{i}", value=float(s['price']), label_visibility="collapsed")
+            with c3: s['qty'] = st.number_input(f"q{i}", value=int(s['qty']), label_visibility="collapsed")
+            with c4: s['strategy'] = st.selectbox(f"s{i}", ["추세추종", "초단타"], index=0 if s['strategy']=="추세추종" else 1, label_visibility="collapsed")
+            with c5: 
+                if st.button("🗑️", key=f"d{i}"): st.session_state.portfolio.pop(i); st.rerun()
+    else: st.info("보유 종목이 없습니다. 우측 상단 '➕ 종목 추가' 버튼을 눌러주세요.")
+
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    # MY DIAGNOSIS BUTTON & TIMER
+    if st.button("📝 내 종목만 진단하기", use_container_width=True):
+        st.session_state.trigger_my = True
+        st.rerun()
+    auto_my = st.selectbox("⏱️ 내 종목 자동진단 주기", list(TIME_OPTS.keys()), index=0, key="tm_my", label_visibility="collapsed")
+
+    # ADVISORS
+    st.markdown("<br>", unsafe_allow_html=True)
+    bc1, bc2 = st.columns(2)
+    with bc1:
+        if st.button("🐹 햄찌의 앙큼상큼 팩트폭격 뀨? ❤️", use_container_width=True):
+            engine = SingularityEngine(); market_data = load_top50_data()
+            title, msg = engine.hamzzi_nagging(st.session_state.cash, st.session_state.portfolio, market_data)
+            st.session_state.adv_msg = f"<div class='hamzzi-box'><div class='hamzzi-title'>{title}</div>{msg}</div>"
+    with bc2:
+        if st.button("🐯 호랑이의 유비무환(有備無患) 대호통", use_container_width=True):
+            engine = SingularityEngine(); market_data = load_top50_data()
+            title, msg = engine.tiger_nagging(st.session_state.cash, st.session_state.portfolio, market_data)
+            st.session_state.adv_msg = f"<div class='tiger-box'><div class='tiger-title'>{title}</div>{msg}</div>"
+            
+    if 'adv_msg' in st.session_state: st.markdown(st.session_state.adv_msg, unsafe_allow_html=True)
+
+# [MY DIAGNOSIS RENDER - ALWAYS VISIBLE IF DATA EXISTS]
 if st.session_state.my_diagnosis:
     st.markdown("---")
     st.markdown("<h5>👤 내 보유 종목 정밀 진단 리포트</h5>", unsafe_allow_html=True)
     for d in st.session_state.my_diagnosis: render_full_card(d, is_rank=False)
 
-# [SECTION 2: MARKET SCAN]
+# [MARKET SCAN SECTION - ALWAYS VISIBLE]
 st.markdown("<br><hr style='border-top: 1px dashed #333; margin: 30px 0;'><br>", unsafe_allow_html=True)
 st.markdown("#### 📡 시장 정밀 타격 (Market Intelligence)")
 st.markdown("<br>", unsafe_allow_html=True)
@@ -444,24 +502,23 @@ st.markdown("<br>", unsafe_allow_html=True)
 b1, b2 = st.columns(2)
 with b1:
     if st.button("🏆 타이거&햄찌 출격! (Top 3)"):
-        st.session_state.display_mode = 'TOP3'
         st.session_state.trigger_top3 = True
         st.rerun()
     auto_top3 = st.selectbox("타이머1", list(TIME_OPTS.keys()), index=0, key="tm_top3", label_visibility="collapsed")
 
 with b2:
     if st.button("📊 단타 / 추세 (전략별 보기)"):
-        st.session_state.display_mode = 'SEPARATE'
         st.session_state.trigger_sep = True
         st.rerun()
     auto_sep = st.selectbox("타이머2", list(TIME_OPTS.keys()), index=0, key="tm_sep", label_visibility="collapsed")
 
-# [MARKET RESULTS]
-if st.session_state.display_mode == 'TOP3' and st.session_state.ideal_list:
+# [MARKET RESULTS RENDER]
+# Logic: Display the last activated market mode
+if st.session_state.market_view_mode == 'TOP3' and st.session_state.ideal_list:
     st.markdown("<h5>🏆 금일의 Singularity Ideal Pick (Top 3)</h5>", unsafe_allow_html=True)
     for i, d in enumerate(st.session_state.ideal_list): render_full_card(d, i, is_rank=True)
 
-elif st.session_state.display_mode == 'SEPARATE' and (st.session_state.sc_list or st.session_state.sw_list):
+elif st.session_state.market_view_mode == 'SEPARATE' and (st.session_state.sc_list or st.session_state.sw_list):
     st.markdown("<h5>📊 전략별 절대 랭킹 (Top 3)</h5>", unsafe_allow_html=True)
     t1, t2 = st.tabs(["⚡ 초단타", "🌊 추세추종"])
     with t1:
@@ -469,21 +526,31 @@ elif st.session_state.display_mode == 'SEPARATE' and (st.session_state.sc_list o
     with t2:
         for i, d in enumerate(st.session_state.sw_list): render_full_card(d, i, is_rank=True)
 
-# [AUTO REFRESH LOOP]
+# [AUTO REFRESH LOGIC - END OF SCRIPT]
 now = time.time()
 need_rerun = False
 
+# 1. My Diagnosis Trigger
 t_val_my = TIME_OPTS[auto_my]
 if st.session_state.trigger_my or (t_val_my > 0 and now - st.session_state.l_my > t_val_my):
-    if st.session_state.display_mode == 'MY': run_my_diagnosis(); need_rerun = True
+    run_my_diagnosis()
+    need_rerun = True
 
+# 2. Top 3 Trigger
 t_val_top3 = TIME_OPTS[auto_top3]
 if st.session_state.trigger_top3 or (t_val_top3 > 0 and now - st.session_state.l_top3 > t_val_top3):
-    if st.session_state.display_mode == 'TOP3': run_market_scan('TOP3'); need_rerun = True
+    run_market_scan('TOP3')
+    need_rerun = True
 
+# 3. Separate Trigger
 t_val_sep = TIME_OPTS[auto_sep]
 if st.session_state.trigger_sep or (t_val_sep > 0 and now - st.session_state.l_sep > t_val_sep):
-    if st.session_state.display_mode == 'SEPARATE': run_market_scan('SEPARATE'); need_rerun = True
+    run_market_scan('SEPARATE')
+    need_rerun = True
 
 if need_rerun: st.rerun()
-if t_val_my > 0 or t_val_top3 > 0 or t_val_sep > 0: time.sleep(1); st.rerun()
+
+# Timer Keep-Alive
+if t_val_my > 0 or t_val_top3 > 0 or t_val_sep > 0:
+    time.sleep(1)
+    st.rerun()
