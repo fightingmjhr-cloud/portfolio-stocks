@@ -8,17 +8,22 @@ import random
 import textwrap
 
 # -----------------------------------------------------------------------------
-# [1] 시스템 설정 및 데이터 로딩 (최우선 실행 - 에러 방지 최적화)
+# [0] SYSTEM CONFIG & SAFETY INIT (가장 먼저 실행)
 # -----------------------------------------------------------------------------
-st.set_page_config(page_title="Hojji & Hamzzi Quant", page_icon="🐹", layout="centered")
+st.set_page_config(page_title="Hojji & Hamzzi Quant", page_icon="🐯", layout="centered")
+
+# [안전 장치] 전역 변수 기본값 먼저 선언 (NameError 방지)
+stock_names = ["삼성전자", "SK하이닉스", "LG에너지솔루션", "POSCO홀딩스", "NAVER", "카카오"]
 
 @st.cache_data(ttl=86400)
-def get_stock_list():
+def get_stock_list_safe():
     try:
         df = fdr.StockListing('KRX')
+        # 우선순위주, 스팩 등 제외
         df = df[~df['Name'].str.contains('스팩|리츠|우|홀딩스|ET')]
         return df['Name'].tolist()
     except:
+        # 데이터 로드 실패 시 기본값 반환
         return ["삼성전자", "SK하이닉스", "LG에너지솔루션", "POSCO홀딩스", "NAVER", "카카오"]
 
 @st.cache_data(ttl=3600)
@@ -29,11 +34,13 @@ def load_top50_data():
         return df.sort_values(by='Marcap', ascending=False).head(50)
     except: return pd.DataFrame()
 
-# [중요] 전역 변수 선언 (NameError 방지)
-stock_names = get_stock_list()
+# 실제 데이터 로드 (실패해도 위에서 정의한 기본값 사용됨)
+stock_names = get_stock_list_safe()
 TIME_OPTS = {"⛔ 수동": 0, "⏱️ 3분": 180, "⏱️ 10분": 600, "⏱️ 30분": 1800}
 
-# [최적화] 세션 상태 일괄 초기화 (AttributeError 방지)
+# -----------------------------------------------------------------------------
+# [1] SESSION STATE INIT (일괄 초기화로 AttributeError 방지)
+# -----------------------------------------------------------------------------
 DEFAULT_STATE = {
     'portfolio': [], 'ideal_list': [], 'sc_list': [], 'sw_list': [],
     'cash': 10000000, 'target_return': 5.0, 'my_diagnosis': [],
@@ -47,11 +54,11 @@ for key, val in DEFAULT_STATE.items():
         st.session_state[key] = val
 
 # -----------------------------------------------------------------------------
-# [2] 스타일링 (다크 테마 & HTML 버그 수정용 CSS)
+# [2] STYLING (Luxury Dark & Neon Gold)
 # -----------------------------------------------------------------------------
 st.markdown("""
 <style>
-    /* Global */
+    /* App Base */
     .stApp { background-color: #050505; color: #e0e0e0; font-family: 'Pretendard', sans-serif; }
     
     /* Neon Gold Buttons */
@@ -59,7 +66,7 @@ st.markdown("""
         width: 100%; border-radius: 10px; font-weight: 800; height: 52px; font-size: 16px;
         background: linear-gradient(135deg, #1c1c1c 0%, #2a2a2a 100%); 
         border: 1px solid #d4af37; color: #d4af37; letter-spacing: 0.5px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.5); transition: 0.3s;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.5); transition: all 0.3s ease;
     }
     .stButton>button:hover { 
         background: linear-gradient(135deg, #d4af37 0%, #f1c40f 100%);
@@ -73,13 +80,13 @@ st.markdown("""
         border: 1px solid #333 !important; border-radius: 8px;
     }
     .stTextInput label, .stNumberInput label, .stSelectbox label {
-        font-size: 13px !important; font-weight: bold !important; color: #aaa !important;
+        font-size: 13px !important; font-weight: bold !important; color: #888 !important;
     }
     
-    /* Card UI Structure */
+    /* Card UI */
     .stock-card { 
         background: #121212; border-radius: 16px; padding: 0; margin-bottom: 25px; 
-        border: 1px solid #333; box-shadow: 0 10px 30px rgba(0,0,0,0.7); overflow: hidden;
+        border: 1px solid #333; box-shadow: 0 10px 40px rgba(0,0,0,0.7); overflow: hidden;
     }
     .card-header { 
         padding: 18px 25px; background: #1a1a1a; border-bottom: 1px solid #333; 
@@ -95,10 +102,7 @@ st.markdown("""
     .prog-bg { background: #222; height: 10px; width: 100%; margin: 0; }
     .prog-fill { height: 100%; transition: width 1s ease-in-out; }
     
-    /* Tags & Info */
-    .tag-container { padding: 15px 25px 5px 25px; }
-    .tag { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 11px; margin-right: 5px; font-weight: bold; color: #000; }
-    
+    /* Info Grid */
     .info-grid { 
         display: grid; grid-template-columns: repeat(2, 1fr); gap: 1px; 
         background: #333; margin: 15px 0 0 0; border-top: 1px solid #333; 
@@ -107,30 +111,47 @@ st.markdown("""
     .info-label { font-size: 12px; color: #888; display: block; margin-bottom: 4px; }
     .info-val { font-size: 17px; font-weight: bold; color: #fff; }
     
-    /* Persona Box */
-    .persona-box { padding: 20px; font-size: 14px; line-height: 1.8; color: #ddd; background: #1a1a1a; border-radius: 12px; margin-top: 15px; border-left-width: 4px; border-left-style: solid; }
-    .persona-title { font-weight: 900; margin-bottom: 12px; font-size: 16px; padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+    /* Persona Analysis Box */
+    .persona-box { 
+        padding: 20px; font-size: 14px; line-height: 1.8; color: #e0e0e0; 
+        background: #1a1a1a; border-radius: 12px; margin-top: 15px; 
+        border-left-width: 4px; border-left-style: solid; 
+    }
+    .persona-title { 
+        font-weight: 900; margin-bottom: 12px; font-size: 16px; padding-bottom: 8px; 
+        border-bottom: 1px solid rgba(255,255,255,0.1); 
+    }
     
-    /* HUD & Timeline */
+    /* Dashboard & Timeline */
+    .port-dash { background: #1a1a1a; padding: 25px; border-radius: 16px; margin-bottom: 30px; border: 1px solid #444; }
+    .timeline-box { 
+        display: flex; justify-content: space-between; background: #0a0a0a; 
+        padding: 20px 30px; border-top: 1px solid #333; 
+    }
+    
+    /* HUD Grid */
     .hud-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 15px; background: #0f0f0f; padding: 15px; border-radius: 10px; border: 1px solid #333; }
     .hud-item { background: #1e1e1e; padding: 10px; border-radius: 8px; text-align: center; border: 1px solid #333; }
     .hud-l { font-size: 11px; color: #888; display: block; }
     .hud-v { font-size: 14px; font-weight: bold; color: #00C9FF; }
     
-    .timeline-box { display: flex; justify-content: space-between; background: #0a0a0a; padding: 20px 30px; border-top: 1px solid #333; }
+    /* Tags */
+    .tag { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 11px; margin-right: 5px; font-weight: bold; background:#222; border:1px solid #444; color:#ccc; }
     
-    /* Utility */
-    .rank-ribbon { position: absolute; top: 0; left: 0; padding: 6px 15px; font-size: 12px; font-weight: bold; color: #fff; background: linear-gradient(45deg, #FF416C, #FF4B2B); border-bottom-right-radius: 15px; z-index: 5; }
+    /* Rank Ribbon */
+    .rank-ribbon { position: absolute; top: 0; left: 0; padding: 6px 15px; font-size: 12px; font-weight: bold; color: #fff; background: linear-gradient(45deg, #FF416C, #FF4B2B); border-bottom-right-radius: 15px; z-index: 5; box-shadow: 2px 2px 10px rgba(0,0,0,0.5); }
+    
     .summary-line { margin-top: 10px; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 6px; font-weight: bold; color: #fff; border: 1px solid #333; font-size: 13px; }
     
     div[data-testid="column"]:nth-child(5) { margin-left: -15px !important; margin-top: 23px; }
 </style>
 """, unsafe_allow_html=True)
 
-st.markdown("<h1 style='text-align: center; color: #d4af37; text-shadow: 0 0 20px rgba(212,175,55,0.4);'>🐹 햄찌와 호찌의 퀀트 대작전 🚀</h1>", unsafe_allow_html=True)
+# [TITLE FIXED] 호찌는 호랑이(🐯), 햄찌는 햄스터(🐹)
+st.markdown("<h1 style='text-align: center; color: #d4af37; text-shadow: 0 0 20px rgba(212,175,55,0.4);'>🐯 호찌 & 🐹 햄찌의 퀀트 대작전</h1>", unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
-# [3] SINGULARITY OMEGA ENGINE (Deep Logic & Text Gen)
+# [3] SINGULARITY OMEGA ENGINE (Core Logic)
 # -----------------------------------------------------------------------------
 class SingularityEngine:
     def _calculate_metrics(self, name, mode):
@@ -138,31 +159,36 @@ class SingularityEngine:
         seed_val = zlib.crc32(unique_key.encode())
         np.random.seed(seed_val)
         return {
-            "omega": np.random.uniform(5.0, 25.0), "vol_surf": np.random.uniform(0.1, 0.9),
-            "betti": np.random.choice([0, 1], p=[0.85, 0.15]), "hurst": np.random.uniform(0.2, 0.99),
-            "te": np.random.uniform(0.1, 5.0), "vpin": np.random.uniform(0.0, 1.0),
-            "hawkes": np.random.uniform(0.1, 4.0), "obi": np.random.uniform(-1.0, 1.0),
-            "gnn": np.random.uniform(0.1, 1.0), "es": np.random.uniform(-0.01, -0.30), 
+            "omega": np.random.uniform(5.0, 25.0), 
+            "vol_surf": np.random.uniform(0.1, 0.9), 
+            "betti": np.random.choice([0, 1], p=[0.85, 0.15]), 
+            "hurst": np.random.uniform(0.2, 0.99), 
+            "te": np.random.uniform(0.1, 5.0), 
+            "vpin": np.random.uniform(0.0, 1.0), 
+            "hawkes": np.random.uniform(0.1, 4.0), 
+            "obi": np.random.uniform(-1.0, 1.0), 
+            "gnn": np.random.uniform(0.1, 1.0), 
+            "es": np.random.uniform(-0.01, -0.30), 
             "kelly": np.random.uniform(0.01, 0.30)
         }
 
     def run_diagnosis(self, name, mode="swing"):
         m = self._calculate_metrics(name, mode)
         score = 50.0 
-        tags = [{'label': '기본 마진', 'val': '+35', 'type': 'base', 'bg': '#888'}]
+        tags = [{'label': '기본 마진', 'val': '+35', 'type': 'base'}]
 
-        if m['vpin'] > 0.6: score -= 20; tags.append({'label': '⚠️ 독성 매물', 'val': '-20', 'type': 'bad', 'bg': '#FF4444'})
-        if m['es'] < -0.20: score -= 15; tags.append({'label': '📉 Tail Risk', 'val': '-15', 'type': 'bad', 'bg': '#FF4444'})
-        if m['betti'] == 1: score -= 10; tags.append({'label': '🌀 구조 붕괴', 'val': '-10', 'type': 'bad', 'bg': '#FF4444'})
+        if m['vpin'] > 0.6: score -= 20; tags.append({'label': '⚠️ 독성 매물', 'val': '-20', 'type': 'bad'})
+        if m['es'] < -0.20: score -= 15; tags.append({'label': '📉 Tail Risk', 'val': '-15', 'type': 'bad'})
+        if m['betti'] == 1: score -= 10; tags.append({'label': '🌀 구조 붕괴', 'val': '-10', 'type': 'bad'})
         
         if mode == "scalping":
-            if m['hawkes'] > 2.0: score += 45; tags.append({'label': '🚀 Hawkes 폭발', 'val': '+45', 'type': 'best', 'bg': '#00FF00'})
-            elif m['hawkes'] > 1.5: score += 15; tags.append({'label': '⚡ 수급 우위', 'val': '+15', 'type': 'good', 'bg': '#00C9FF'})
+            if m['hawkes'] > 2.0: score += 45; tags.append({'label': '🚀 Hawkes 폭발', 'val': '+45', 'type': 'best'})
+            elif m['hawkes'] > 1.5: score += 15; tags.append({'label': '⚡ 수급 우위', 'val': '+15', 'type': 'good'})
         else: 
-            if m['hurst'] > 0.7: score += 40; tags.append({'label': '📈 추세 지속', 'val': '+40', 'type': 'best', 'bg': '#00FF00'})
-            elif m['hurst'] > 0.6: score += 10; tags.append({'label': '↗️ 모멘텀 양호', 'val': '+10', 'type': 'good', 'bg': '#00C9FF'})
+            if m['hurst'] > 0.7: score += 40; tags.append({'label': '📈 추세 지속', 'val': '+40', 'type': 'best'})
+            elif m['hurst'] > 0.6: score += 10; tags.append({'label': '↗️ 모멘텀 양호', 'val': '+10', 'type': 'good'})
 
-        if m['gnn'] > 0.8: score += 10; tags.append({'label': '👑 GNN 대장주', 'val': '+10', 'type': 'good', 'bg': '#00C9FF'})
+        if m['gnn'] > 0.8: score += 10; tags.append({'label': '👑 GNN 대장주', 'val': '+10', 'type': 'good'})
         win_rate = min(0.95, max(0.10, score / 100))
         return win_rate, m, tags
 
@@ -178,7 +204,7 @@ class SingularityEngine:
         safe_kelly = m['kelly'] * 0.5 
         can_buy = int((cash * safe_kelly) / price) if price > 0 else 0
 
-        # 🐹 HAMZZI (Infinite Variety & Deep Analysis)
+        # 🐹 HAMZZI (Deep Logic)
         if wr >= 0.70:
             h_brief = f"""
             <b>[1. JLS 임계점 & Hawkes 폭발]</b><br>
@@ -207,7 +233,7 @@ class SingularityEngine:
             <div class='summary-line'>🐹 요약: 폭탄이야! 만지면 터져! 도망가! 💣</div>
             """
 
-        # 🐯 HOJJI (Conservative Deep Analysis)
+        # 🐯 HOJJI (Deep Logic)
         if wr >= 0.70:
             t_brief = f"""
             <b>[1. 네트워크 중심성 (GNN)]</b><br>
@@ -238,8 +264,8 @@ class SingularityEngine:
 
         return {
             "prices": (price, target, stop),
-            "hamzzi": {"text": h_brief},
-            "hojji": {"text": t_brief}
+            "hamzzi": {"title": "🐹 햄찌의 야수 본능", "text": h_brief},
+            "hojji": {"title": "🐯 호찌의 유비무환", "text": t_brief}
         }
 
     def diagnose_portfolio(self, portfolio, cash):
@@ -344,9 +370,10 @@ def render_full_card(d, idx=None, is_rank=False):
     # Tag Generator
     tag_html = ""
     for t in d['tags']:
-        tag_html += f"<span class='tag' style='color:{t.get('bg', '#888')}; border:1px solid {t.get('bg', '#888')};'>{t['label']} {t['val']}</span>"
+        tc = "#00FF00" if t['type'] == 'best' else "#00C9FF" if t['type'] == 'good' else "#FF4444"
+        tag_html += f"<span class='tag' style='color:{tc}; border:1px solid {tc};'>{t['label']} {t['val']}</span>"
 
-    # 1. Main Card (Fix: Using textwrap.dedent to ensure HTML formatting is correct)
+    # Main Card
     st.markdown(textwrap.dedent(f"""
     <div class='stock-card' style='border-color:{color};'>
         {rank_html}
@@ -368,7 +395,6 @@ def render_full_card(d, idx=None, is_rank=False):
     </div>
     """), unsafe_allow_html=True)
 
-    # 2. Tabs
     t1, t2, t3 = st.tabs(["🐹 햄찌의 분석", "🐯 호찌의 분석", "📊 8대 엔진 HUD"])
     
     with t1:
@@ -405,7 +431,6 @@ def render_full_card(d, idx=None, is_rank=False):
         st.markdown("<hr style='border-color:#333; margin:10px 0;'>", unsafe_allow_html=True)
         st.markdown(terms['hojji'], unsafe_allow_html=True)
 
-    # 3. Timeline
     st.markdown(textwrap.dedent(f"""
     <div class='timeline-box'>
         <div class='t-item'><span class='info-label'>진입/평단</span><span class='t-val' style='color:#00C9FF'>{p['prices'][0]:,}</span></div>
@@ -425,6 +450,7 @@ with st.expander("💰 내 자산 및 포트폴리오 설정", expanded=True):
         st.success("스캔 완료!")
 
     st.markdown("---")
+    
     c1, c2, c3 = st.columns(3)
     with c1: 
         st.caption("**예수금 (KRW)**")
@@ -439,6 +465,7 @@ with st.expander("💰 내 자산 및 포트폴리오 설정", expanded=True):
             st.rerun()
     
     st.markdown("---")
+    
     if st.session_state.portfolio:
         for i, s in enumerate(st.session_state.portfolio):
             cols = st.columns([3, 2, 1.5, 2, 0.5])
@@ -490,8 +517,61 @@ with b2:
 if 'adv_msg' in st.session_state: st.markdown(st.session_state.adv_msg, unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
-# [7] RESULTS RENDER
+# [7] LOGIC LOOP (ERROR FREE)
 # -----------------------------------------------------------------------------
+def run_my_diagnosis():
+    engine = SingularityEngine(); market_data = load_top50_data(); my_res = []
+    
+    # Port Diagnosis
+    h_port, t_port = engine.diagnose_portfolio(st.session_state.portfolio, st.session_state.cash)
+    st.session_state.port_analysis = {'hamzzi': h_port, 'hojji': t_port}
+    
+    with st.spinner("내 포트폴리오 정밀 해부 중..."):
+        for s in st.session_state.portfolio:
+            if not s['name']: continue
+            mode = "scalping" if s['strategy'] == "초단타" else "swing"
+            price = int(s['price']) if s['price'] > 0 else 10000
+            
+            wr, m, tags = engine.run_diagnosis(s['name'], mode)
+            plan = engine.generate_report(mode, price, m, wr, st.session_state.cash, s['qty'], st.session_state.target_return)
+            pnl = ((price - s['price'])/s['price']*100) if s['price']>0 else 0
+            my_res.append({'name': s['name'], 'price': price, 'pnl': pnl, 'win': wr, 'm': m, 'tags': tags, 'plan': plan, 'mode': mode})
+    
+    st.session_state.my_diagnosis = my_res
+    st.session_state.l_my = time.time()
+    st.session_state.trigger_my = False
+
+def run_market_scan(mode):
+    engine = SingularityEngine(); market_data = load_top50_data()
+    sc, sw, ideal = [], [], []
+    with st.spinner("시장 전체 스캔 및 8대 엔진 가동 중..."):
+        for _, row in market_data.iterrows():
+            if pd.isna(row['Close']): continue
+            price = int(float(row['Close'])); name = row['Name']
+            
+            wr_sc, m_sc, t_sc = engine.run_diagnosis(name, "scalping")
+            p_sc = engine.generate_report("scalping", price, m_sc, wr_sc, st.session_state.cash, 0, st.session_state.target_return)
+            
+            wr_sw, m_sw, t_sw = engine.run_diagnosis(name, "swing")
+            p_sw = engine.generate_report("swing", price, m_sw, wr_sw, st.session_state.cash, 0, st.session_state.target_return)
+            
+            sc.append({'name': name, 'price': price, 'win': wr_sc, 'mode': '초단타', 'tags': t_sc, 'plan': p_sc, 'm': m_sc})
+            sw.append({'name': name, 'price': price, 'win': wr_sw, 'mode': '추세추종', 'tags': t_sw, 'plan': p_sw, 'm': m_sw})
+            ideal.append(sc[-1] if wr_sc >= wr_sw else sw[-1])
+            
+    sc.sort(key=lambda x: x['win'], reverse=True); sw.sort(key=lambda x: x['win'], reverse=True); ideal.sort(key=lambda x: x['win'], reverse=True)
+    st.session_state.sc_list = sc[:3]; st.session_state.sw_list = sw[:3]; st.session_state.ideal_list = ideal[:3]
+    
+    if mode == 'TOP3': 
+        st.session_state.l_top3 = time.time()
+        st.session_state.market_view_mode = 'TOP3'
+        st.session_state.trigger_top3 = False
+    else: 
+        st.session_state.l_sep = time.time()
+        st.session_state.market_view_mode = 'SEPARATE'
+        st.session_state.trigger_sep = False
+
+# [RESULTS]
 if st.session_state.my_diagnosis:
     st.markdown("---")
     if 'port_analysis' in st.session_state and st.session_state.port_analysis:
@@ -545,9 +625,6 @@ elif st.session_state.market_view_mode == 'SEPARATE' and st.session_state.sc_lis
     with t2:
         for i, d in enumerate(st.session_state.sw_list): render_full_card(d, i, is_rank=True)
 
-# -----------------------------------------------------------------------------
-# [8] AUTO REFRESH LOOP
-# -----------------------------------------------------------------------------
 now = time.time()
 need_rerun = False
 
