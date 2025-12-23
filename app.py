@@ -6,7 +6,7 @@ import datetime
 import FinanceDataReader as fdr
 
 # -----------------------------------------------------------------------------
-# [CORE ENGINE] SINGULARITY ENGINE v16.0 (Smart UI & Full Logic)
+# [CORE ENGINE] SINGULARITY ENGINE v18.0 (Custom Timer & Real Data)
 # -----------------------------------------------------------------------------
 
 class SingularityEngine:
@@ -63,7 +63,7 @@ class SingularityEngine:
         kelly = np.random.uniform(0.05, 0.45)
         return {"es": es, "kelly": kelly}
 
-    # [MASTER] 8대 엔진 통합 연산
+    # [MASTER] 8대 엔진 통합 연산 (요약 없음, 원본 논리 수행)
     def run_full_diagnosis(self, mode="swing"):
         e1 = self._engine_physics()
         e2 = self._engine_math()
@@ -72,7 +72,7 @@ class SingularityEngine:
         e56 = self._engine_ai_net()
         e8 = self._engine_risk()
         
-        # 앙상블 스코어링
+        # 앙상블 스코어링 (가중치 로직)
         score = 0
         if 7 < e1['omega'] < 15: score += 15 
         if e2['betti'] == 0: score += 10 
@@ -83,7 +83,7 @@ class SingularityEngine:
         if e56['sent'] > 0.2: score += 10 
         if e2['hurst'] > 0.55: score += 15 
         
-        # 단타 특화 가산점
+        # 단타 모드일 경우 Hawkes(수급) 가중치 대폭 증가
         if mode == "scalping" and e4['hawkes'] > 1.5: score += 25
         
         win_rate = min(0.99, score / 100)
@@ -91,42 +91,43 @@ class SingularityEngine:
         
         return win_rate, metrics
 
-    # [DATA] 주도주 발굴
+    # [DATA] 시장 주도주 발굴 (거래대금 상위)
     def fetch_market_leaders(self):
         try:
             df_krx = fdr.StockListing('KRX')
             df_krx = df_krx[~df_krx['Name'].str.contains('스팩|리츠|우|홀딩스|ET')]
+            # 거래대금(Amount) 혹은 시가총액(Marcap) 기준 정렬
             if 'Amount' in df_krx.columns:
                 return df_krx.sort_values(by='Amount', ascending=False).head(30)
             return df_krx.sort_values(by='Marcap', ascending=False).head(30)
         except: return pd.DataFrame()
 
-    # [TASK 1] 내 포트폴리오 정밀 분석 (Data Editor 연동)
-    def analyze_portfolio_df(self, df_input):
+    # [TASK 1] 내 포트폴리오 분석 (실제 주가 연동)
+    def analyze_portfolio_list(self, portfolio_list):
         results = []
         try:
-            # DataFrame 순회
-            for index, row in df_input.iterrows():
-                name = str(row['종목명']).strip()
+            # KRX 전체 리스트 로딩 (종목코드 매핑용)
+            df_krx = fdr.StockListing('KRX')
+            
+            for item in portfolio_list:
+                name = item['name']
                 if not name: continue
                 
-                avg_price = float(row['평단가'])
-                qty = int(row['수량'])
-                strategy = str(row['전략']) # Swing or Scalping
+                avg_price = float(item['price'])
+                qty = int(item['qty'])
+                mode = "scalping" if item['strategy'] == "초단타 (Scalping)" else "swing"
                 
-                # 모드 설정
-                mode = "scalping" if strategy == "Scalping" else "swing"
-                
-                # 데이터 로딩
-                df_krx = fdr.StockListing('KRX')
+                # 종목 코드 찾기
                 row_krx = df_krx[df_krx['Name'] == name]
                 
                 current_price = avg_price
                 market_type = "UNKNOWN"
+                
                 if not row_krx.empty:
                     code = row_krx.iloc[0]['Code']
                     market_type = row_krx.iloc[0]['Market']
                     try:
+                        # FinanceDataReader로 실시간 현재가 조회
                         df_p = fdr.DataReader(code)
                         if not df_p.empty: current_price = int(df_p['Close'].iloc[-1])
                     except: pass
@@ -142,24 +143,22 @@ class SingularityEngine:
                 
                 detail = {}
                 if mode == "scalping":
-                    # Almgren-Chriss (Scalping)
+                    # Almgren-Chriss (Scalping) 최적 궤적
                     vol = m['vol_surf'] * 0.1
                     entry = int(current_price * (1 - vol/2))
                     exit_p = int(current_price * (1 + vol))
                     stop_p = int(current_price * 0.985)
                     
                     bias = "매수 우위" if m['obi'] > 0 else "매도 우위"
-                    msg = f"Hawkes({m['hawkes']:.2f}) 폭발. {bias} 상태. 즉각 대응."
-                    
+                    msg = f"Hawkes({m['hawkes']:.2f}) 폭발 & {bias}. 즉각 대응 요망."
                     detail = {"type": "SCALPING", "msg": msg, "entry": entry, "exit": exit_p, "stop": stop_p}
                 else:
-                    # Almgren-Chriss (Swing)
+                    # Almgren-Chriss (Swing) 최적 궤적
                     target = int(current_price * 1.15)
                     stop_p = int(current_price * (1 + m['es']))
                     
                     ac_msg = f"시장 충격 최소화를 위한 TWAP 분할 매매 권장."
-                    msg = f"추세(H={m['hurst']:.2f}) 추종. {ac_msg}" if wr >= 0.6 else "EVT 꼬리 위험 감지. 리스크 관리."
-                    
+                    msg = f"추세(H={m['hurst']:.2f}) 추종 구간. {ac_msg}" if wr >= 0.6 else "EVT 꼬리 위험 감지. 리스크 관리."
                     detail = {"type": "SWING", "msg": msg, "target": target, "stop": stop_p}
 
                 results.append({
@@ -168,10 +167,10 @@ class SingularityEngine:
                     "metrics": m, "action": action, "detail": detail, "market": market_type
                 })
         except Exception as e:
-            st.error(f"분석 중 오류 발생: {e}")
+            st.error(f"분석 중 오류: {e}")
         return results
 
-    # [TASK 2&3] 시장 스캔
+    # [TASK 2&3] 시장 스캔 (실제 주가 연동)
     def scan_market(self):
         leaders = self.fetch_market_leaders()
         swing, scalp = [], []
@@ -180,12 +179,13 @@ class SingularityEngine:
             name = row['Name']
             code = row['Code']
             try:
+                # 실시간 주가 조회
                 df = fdr.DataReader(code)
                 if df.empty: continue
                 price = int(df['Close'].iloc[-1])
             except: continue
             
-            # Scalping Scan
+            # Scalping Scan Logic
             wr_sc, m_sc = self.run_full_diagnosis("scalping")
             if wr_sc >= 0.7 and m_sc['hawkes'] > 1.3:
                 vol = np.random.uniform(0.02, 0.05)
@@ -195,7 +195,7 @@ class SingularityEngine:
                     "reason": f"Hawkes({m_sc['hawkes']:.2f}) & OBI({m_sc['obi']:.2f}) 동조"
                 })
             
-            # Swing Scan
+            # Swing Scan Logic
             wr_sw, m_sw = self.run_full_diagnosis("swing")
             if wr_sw >= 0.75 and m_sw['hurst'] > 0.6:
                 swing.append({
@@ -213,15 +213,23 @@ class SingularityEngine:
 # -----------------------------------------------------------------------------
 st.set_page_config(page_title="Tiger&Hamzzi Quant", page_icon="🐯", layout="centered")
 
+# CSS: 디자인 강화 (카드형 인풋 + 네온 글로우)
 st.markdown("""
 <style>
     .stApp { background-color: #000000; color: #e0e0e0; font-family: 'Roboto', sans-serif; }
+    
     .stButton>button { width: 100%; border-radius: 8px; font-weight: bold; height: 50px; font-size: 18px; 
                        background: linear-gradient(90deg, #00C9FF, #92FE9D); border: none; color: black; }
+    
+    .input-card {
+        background-color: #1a1f26; border: 1px solid #333; border-radius: 10px; padding: 15px; margin-bottom: 10px;
+        box-shadow: 0 0 10px rgba(0, 201, 255, 0.1); /* 네온 효과 */
+    }
     
     .stock-card { background-color: #161b22; border: 1px solid #30363d; border-radius: 10px; padding: 15px; margin-bottom: 15px; }
     .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
     .stock-name { font-size: 20px; font-weight: bold; color: white; }
+    
     .badge { padding: 3px 8px; border-radius: 5px; font-size: 11px; font-weight: bold; margin-left: 5px; }
     .bg-scalp { background: #FFFF00; color: black; }
     .bg-swing { background: #00C9FF; color: black; }
@@ -238,53 +246,66 @@ st.markdown("""
     .dd-item { background: #1c2128; padding: 8px; border-radius: 5px; font-size: 11px; color: #ccc; }
     .dd-val { font-weight: bold; color: #fff; font-size: 12px; }
     .dd-desc { color: #888; margin-top: 2px; font-size: 10px; }
+    
+    div[data-testid="stExpander"] { background-color: #0d1117; border: 1px solid #30363d; border-radius: 10px; margin-bottom: 5px; }
+    header, footer {visibility: hidden;}
 </style>
 """, unsafe_allow_html=True)
 
 st.markdown("""
 <div style='text-align: center; padding-top: 20px;'>
     <h1 style='color: #fff; margin: 0; font-size: 28px;'>🐯 Tiger&Hamzzi <span style='color:#00C9FF;'>Quant</span> 🐹</h1>
-    <p style='color: #888; font-size: 13px;'>Singularity Engine v16.0 (Smart UI Edition)</p>
+    <p style='color: #888; font-size: 13px;'>Singularity Engine v18.0 (Real Data & Custom Timer)</p>
 </div>
 """, unsafe_allow_html=True)
 
-# [설정 패널: Smart UI]
-with st.expander("⚙️ 내 포트폴리오 관리 (스마트 에디터)", expanded=True):
-    st.markdown("👇 아래 표에 종목을 추가하세요. **전략** 칸에서 `Swing`(추세) 또는 `Scalping`(단타)을 선택하세요.")
-    
-    # 기본 데이터 프레임 생성
-    default_data = pd.DataFrame([
-        {"종목명": "삼성전자", "평단가": 70000, "수량": 20, "전략": "Swing"},
-        {"종목명": "에코프로", "평단가": 100000, "수량": 10, "전략": "Scalping"},
-        {"종목명": "알테오젠", "평단가": 180000, "수량": 30, "전략": "Scalping"}
-    ])
-    
-    # Streamlit Data Editor (엑셀처럼 입력 가능)
-    edited_df = st.data_editor(
-        default_data,
-        num_rows="dynamic", # 행 추가/삭제 가능
-        column_config={
-            "종목명": st.column_config.TextColumn("종목명 (Name)", required=True),
-            "평단가": st.column_config.NumberColumn("평단가 (Price)", min_value=0, step=100, format="%d원"),
-            "수량": st.column_config.NumberColumn("수량 (Qty)", min_value=1, step=1),
-            "전략": st.column_config.SelectboxColumn(
-                "전략 (Mode)",
-                options=["Swing", "Scalping"],
-                required=True,
-                help="Swing: 추세추종 (중기) / Scalping: 초단타 (당일)"
-            )
-        },
-        hide_index=True,
-        use_container_width=True
-    )
+# [세션 상태 관리]
+if 'portfolio' not in st.session_state:
+    st.session_state.portfolio = [
+        {'name': '삼성전자', 'price': 70000, 'qty': 20, 'strategy': '추세추종 (Swing)'},
+        {'name': '에코프로', 'price': 100000, 'qty': 10, 'strategy': '초단타 (Scalping)'}
+    ]
+
+# [입력 패널: 카드형 UI]
+with st.expander("📝 내 포트폴리오 관리 (종목 추가/삭제)", expanded=True):
+    for i, stock in enumerate(st.session_state.portfolio):
+        with st.container():
+            st.markdown(f"<div class='input-card'>", unsafe_allow_html=True)
+            c1, c2, c3, c4, c5 = st.columns([2.5, 2, 1.5, 2, 0.5])
+            
+            with c1:
+                stock['name'] = st.text_input(f"종목명", value=stock['name'], key=f"name_{i}", label_visibility="collapsed", placeholder="종목명")
+            with c2:
+                stock['price'] = st.number_input(f"평단가", value=float(stock['price']), key=f"price_{i}", label_visibility="collapsed")
+            with c3:
+                stock['qty'] = st.number_input(f"수량", value=int(stock['qty']), key=f"qty_{i}", label_visibility="collapsed")
+            with c4:
+                stock['strategy'] = st.selectbox(f"전략", ["추세추종 (Swing)", "초단타 (Scalping)"], index=0 if stock['strategy']=="추세추종 (Swing)" else 1, key=f"st_{i}", label_visibility="collapsed")
+            with c5:
+                if st.button("🗑️", key=f"del_{i}"):
+                    st.session_state.portfolio.pop(i)
+                    st.rerun()
+            st.markdown("</div>", unsafe_allow_html=True)
+
+    if st.button("➕ 종목 추가하기"):
+        st.session_state.portfolio.append({'name': '', 'price': 0, 'qty': 0, 'strategy': '추세추종 (Swing)'})
+        st.rerun()
     
     st.markdown("---")
-    st.markdown("**⏱️ 자동 실행 주기 (Triple Timer)**")
+    st.markdown("**⏱️ 자동 실행 주기 (Triple Timer) - 수정됨**")
+    
+    # [사용자 요청 반영] 타이머 옵션 상세화
+    time_opts = {
+        "Manual": 0,
+        "3 min": 180, "5 min": 300, "10 min": 600, "15 min": 900, 
+        "20 min": 1200, "30 min": 1800, "1 hr": 3600, 
+        "1.5 hr": 5400, "2 hr": 7200, "3 hr": 10800
+    }
+    
     c1, c2, c3 = st.columns(3)
-    time_opts = {"Manual":0, "5 sec":5, "10 sec":10, "30 sec":30, "1 min":60, "30 min":1800}
-    t_my = c1.selectbox("1. 내 종목", list(time_opts.keys()), index=2)
-    t_scalp = c2.selectbox("2. 초단타", list(time_opts.keys()), index=3)
-    t_swing = c3.selectbox("3. 추세추종", list(time_opts.keys()), index=5)
+    t_my = c1.selectbox("1. 내 종목", list(time_opts.keys()), index=2) # 5분
+    t_scalp = c2.selectbox("2. 초단타", list(time_opts.keys()), index=1) # 3분
+    t_swing = c3.selectbox("3. 추세추종", list(time_opts.keys()), index=5) # 30분
 
 if 'running' not in st.session_state: st.session_state.running = False
 # 독립 타이머 상태
@@ -304,7 +325,7 @@ if st.session_state.running:
     # 1. 내 종목 (타이머 체크)
     if time_opts[t_my] > 0 and (curr - st.session_state.last_my > time_opts[t_my]):
         with st.spinner("내 종목 정밀 진단..."):
-            st.session_state.data_my = engine.analyze_portfolio_df(edited_df)
+            st.session_state.data_my = engine.analyze_portfolio_list(st.session_state.portfolio)
             st.session_state.last_my = curr
             
     # 2. 시장 스캔 (타이머 체크)
