@@ -71,7 +71,7 @@ class SingularityEngine:
         win_rate = min(0.92, max(0.15, score / 100))
         return win_rate, m, tags
 
-    # [PERSONA REPORT GENERATOR - PURE HTML STRING]
+    # [PERSONA REPORT GENERATOR]
     def generate_report(self, mode, price, m, wr, cash, current_qty, target_return):
         if mode == "scalping":
             vol = m['vol_surf'] * 0.04
@@ -113,7 +113,6 @@ class SingularityEngine:
             t_act = "관망하게. 쉬는 것도 투자야. 현금 지켜!"
             t_why = "떨어지는 칼날이야. 바닥인 줄 알았는데 지하실 본다."
 
-        # Return structured data for rendering (NO CODE DISPLAY)
         return {
             "prices": (entry, target, stop),
             "hamzzi": {"brief": h_brief, "act": h_act, "why": h_why, "style": h_style},
@@ -143,12 +142,10 @@ class SingularityEngine:
 
     # [PORTFOLIO DEEP DIAGNOSIS]
     def diagnose_portfolio(self, portfolio, cash):
-        # Calculate simulated metrics based on input
         asset_val = sum([s['price'] * s['qty'] for s in portfolio])
         total_val = asset_val + cash
         cash_ratio = (cash / total_val * 100) if total_val > 0 else 100
         
-        # Simulation
         beta = np.random.uniform(0.5, 2.0)
         sharpe = np.random.uniform(0.5, 3.0)
         mdd = np.random.uniform(-5.0, -35.0)
@@ -163,11 +160,11 @@ class SingularityEngine:
 
         # 🐯 HOJJI (Conservative View)
         if cash_ratio < 10:
-            t_msg = f"자네 미쳤나? 현금이 <b>{cash_ratio:.1f}%</b>밖에 없어? 😡 하락장 오면 <b>[MDD {mdd:.1f}%]</b> 맞고 깡통 찰 텐가? 당장 현금 비중 30%까지 늘리게!"
+            t_msg = f"자네 미쳤나? 현금이 <b>{cash_ratio:.1f}%</b>밖에 없어? 😡 하락장 오면 <b>[MDD {mdd:.1f}%]</b> 맞고 깡통 찰 텐가? 과유불급이라 했거늘! 당장 현금 비중 늘리게!"
         elif mdd < -20:
-            t_msg = f"포트폴리오 <b>[MDD]</b>가 {mdd:.1f}%야. 리스크 관리가 전혀 안 되고 있어. 🐯 변동성 큰 잡주는 정리하고 <b>[배당주]</b>나 <b>[채권]</b>을 섞어서 방어벽을 세우게."
+            t_msg = f"포트폴리오 <b>[MDD]</b>가 {mdd:.1f}%야. 리스크 관리가 전혀 안 되고 있어. 🐯 변동성 큰 잡주는 정리하고 <b>[배당주]</b>나 <b>[채권]</b>을 섞어서 유비무환의 자세를 갖추게."
         else:
-            t_msg = f"음, 현금 비중도 적절하고 <b>[MDD]</b> 관리도 잘 되고 있군. 📚 하지만 방심은 금물이야. <b>[펀더멘털]</b>이 흔들리는 종목은 없는지 수시로 체크하게."
+            t_msg = f"음, 현금 비중도 적절하고 <b>[MDD]</b> 관리도 잘 되고 있군. 📚 하지만 방심은 금물이야. 돌다리도 두들겨 보라고, <b>[펀더멘털]</b>을 수시로 체크하게."
 
         return h_msg, t_msg
 
@@ -238,7 +235,6 @@ stock_names = get_stock_list()
 def run_my_diagnosis():
     engine = SingularityEngine(); market_data = load_top50_data(); my_res = []
     
-    # Portfolio Deep Diagnosis
     h_port, t_port = engine.diagnose_portfolio(st.session_state.portfolio, st.session_state.cash)
     st.session_state.port_analysis = {'hamzzi': h_port, 'hojji': t_port}
     
@@ -432,11 +428,11 @@ if st.session_state.my_diagnosis:
             <div style='font-size:18px; font-weight:bold; color:#fff; margin-bottom:15px;'>📊 포트폴리오 종합 진단 (Conflict Engine)</div>
             <div style='display:grid; grid-template-columns: 1fr 1fr; gap:15px;'>
                 <div style='background:#222; padding:15px; border-radius:8px; border:1px solid #FFAA00;'>
-                    <div style='color:#FFAA00; font-weight:bold; margin-bottom:5px;'>🐹 햄찌 (공격형)</div>
+                    <div style='color:#FFAA00; font-weight:bold; margin-bottom:5px;'>🐹 햄찌의 야수 본능 (인생 한방! 🔥)</div>
                     <div style='font-size:13px; color:#ddd;'>{pa['hamzzi']}</div>
                 </div>
                 <div style='background:#222; padding:15px; border-radius:8px; border:1px solid #FF4444;'>
-                    <div style='color:#FF4444; font-weight:bold; margin-bottom:5px;'>🐯 호찌 (방어형)</div>
+                    <div style='color:#FF4444; font-weight:bold; margin-bottom:5px;'>🐯 호찌의 유비무환(有備無患) 정신 🛡️</div>
                     <div style='font-size:13px; color:#ddd;'>{pa['hojji']}</div>
                 </div>
             </div>
