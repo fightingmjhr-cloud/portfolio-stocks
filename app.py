@@ -8,20 +8,11 @@ import FinanceDataReader as fdr
 # -----------------------------------------------------------------------------
 # [0] GLOBAL SETTINGS & DATA LOADER
 # -----------------------------------------------------------------------------
-# 타이머 옵션 정의 (가장 먼저 정의)
 TIME_OPTS = {
     "⛔ 수동 (멈춤)": 0,
-    "⏱️ 3분": 180,
-    "⏱️ 5분": 300,
-    "⏱️ 10분": 600,
-    "⏱️ 15분": 900,
-    "⏱️ 20분": 1200,
-    "⏱️ 30분": 1800,
-    "⏱️ 40분": 2400,
-    "⏱️ 1시간": 3600,
-    "⏱️ 1시간 30분": 5400,
-    "⏱️ 2시간": 7200,
-    "⏱️ 3시간": 10800
+    "⏱️ 3분": 180, "⏱️ 5분": 300, "⏱️ 10분": 600, "⏱️ 15분": 900, "⏱️ 20분": 1200, 
+    "⏱️ 30분": 1800, "⏱️ 40분": 2400, "⏱️ 1시간": 3600, "⏱️ 1시간 30분": 5400, 
+    "⏱️ 2시간": 7200, "⏱️ 3시간": 10800
 }
 
 @st.cache_data(ttl=86400)
@@ -31,7 +22,7 @@ def get_stock_list():
         df = df[~df['Name'].str.contains('스팩|리츠|우|홀딩스|ET')]
         return df['Name'].tolist()
     except:
-        return ["삼성전자", "SK하이닉스", "LG에너지솔루션"] # Fallback
+        return ["삼성전자", "SK하이닉스", "LG에너지솔루션", "NAVER", "카카오"]
 
 @st.cache_data(ttl=3600)
 def load_top50_data():
@@ -142,6 +133,7 @@ class SingularityEngine:
             "reasons": {"target": reason_target, "stop": reason_stop}
         }
 
+    # [용어 통역사]
     def explain_term(self, persona):
         if persona == 'hamzzi':
             return """
@@ -219,98 +211,30 @@ class SingularityEngine:
         return title, f"<div style='font-size:14px;'><b>1. 호통:</b> {intro}<br><b>2. 훈계:</b> {logic}<br><b style='color:#FF4444;'>3. 어르신 말씀:</b> {advice}</div>"
 
 # -----------------------------------------------------------------------------
-# [2] MAIN EXECUTION LOGIC (Defined BEFORE UI calls)
-# -----------------------------------------------------------------------------
-def run_my_diagnosis():
-    engine = SingularityEngine()
-    market_data = load_top50_data()
-    my_res = []
-    
-    with st.spinner("내 보유 종목 정밀 분석 중..."):
-        for s in st.session_state.portfolio:
-            if not s['name']: continue
-            mode = "scalping" if s['strategy'] == "초단타" else "swing"
-            price = s['price']
-            # Get real price (simulated fallback)
-            match = market_data[market_data['Name'] == s['name']]
-            if not match.empty: 
-                price = int(match.iloc[0]['Close'])
-            else:
-                try: 
-                    df_listing = fdr.StockListing('KRX')
-                    row = df_listing[df_listing['Name'] == s['name']]
-                    if not row.empty:
-                        code = row.iloc[0]['Code']
-                        df_price = fdr.DataReader(code)
-                        if not df_price.empty:
-                            price = int(df_price['Close'].iloc[-1])
-                except: pass
-            
-            wr, m, tags = engine.run_diagnosis(s['name'], mode)
-            plan = engine.generate_report(mode, price, m, wr, st.session_state.cash, s['qty'], st.session_state.target_return)
-            pnl = ((price - s['price'])/s['price']*100) if s['price'] > 0 else 0
-            
-            my_res.append({
-                'name': s['name'], 'price': price, 'pnl': pnl, 
-                'win': wr, 'm': m, 'tags': tags, 'plan': plan, 'mode': mode
-            })
-    
-    st.session_state.my_diagnosis = my_res
-    st.session_state.l_my = time.time() # Update timestamp
-
-def run_market_scan():
-    engine = SingularityEngine()
-    market_data = load_top50_data()
-    sc, sw, ideal = [], [], []
-    
-    with st.spinner("전 종목 정밀 타격 및 랭킹 산출 중..."):
-        for _, row in market_data.iterrows():
-            if pd.isna(row['Close']): continue
-            price = int(float(row['Close']))
-            name = row['Name']
-            
-            # Scalping Scan
-            wr_sc, m_sc, t_sc = engine.run_diagnosis(name, "scalping")
-            p_sc = engine.generate_report("scalping", price, m_sc, wr_sc, st.session_state.cash, 0, st.session_state.target_return)
-            item_sc = {'name': name, 'price': price, 'win': wr_sc, 'mode': '초단타', 'tags': t_sc, 'plan': p_sc, 'm': m_sc}
-            sc.append(item_sc)
-            
-            # Swing Scan
-            wr_sw, m_sw, t_sw = engine.run_diagnosis(name, "swing")
-            p_sw = engine.generate_report("swing", price, m_sw, wr_sw, st.session_state.cash, 0, st.session_state.target_return)
-            item_sw = {'name': name, 'price': price, 'win': wr_sw, 'mode': '추세추종', 'tags': t_sw, 'plan': p_sw, 'm': m_sw}
-            sw.append(item_sw)
-            
-            # Ideal Pick
-            if wr_sc >= wr_sw: ideal.append(item_sc)
-            else: ideal.append(item_sw)
-            
-    sc.sort(key=lambda x: x['win'], reverse=True)
-    sw.sort(key=lambda x: x['win'], reverse=True)
-    ideal.sort(key=lambda x: x['win'], reverse=True)
-    
-    st.session_state.sc_list = sc[:3]
-    st.session_state.sw_list = sw[:3]
-    st.session_state.ideal_list = ideal[:3]
-
-# -----------------------------------------------------------------------------
-# [3] UI & PAGE CONFIG
+# [2] UI & PAGE CONFIG
 # -----------------------------------------------------------------------------
 st.set_page_config(page_title="Tiger&Hamzzi Quant", page_icon="🐯", layout="centered")
 
 st.markdown("""
 <style>
+    /* Global Styles */
     .stApp { background-color: #050505; color: #e0e0e0; font-family: 'Pretendard', sans-serif; }
     .app-title { text-align: center; font-size: 36px; font-weight: 900; color: #fff; padding: 30px 0; text-shadow: 0 0 25px rgba(0,201,255,0.7); }
+    
+    /* Inputs */
     .stTextInput input, .stNumberInput input, .stSelectbox div[data-baseweb="select"] > div {
         background-color: #1a1f26 !important; color: #fff !important; border: 1px solid #444 !important; border-radius: 8px;
     }
+    
+    /* Buttons */
     .stButton>button { 
         width: 100%; border-radius: 12px; font-weight: 800; height: 50px; font-size: 18px;
         background: linear-gradient(135deg, #00C9FF 0%, #92FE9D 100%); border: none; color: #000;
         box-shadow: 0 4px 15px rgba(0, 201, 255, 0.3); transition: 0.3s;
     }
     .stButton>button:hover { transform: scale(1.02); }
+    
+    /* Card UI */
     .stock-card { 
         background: #121212; border-radius: 16px; padding: 0; margin-bottom: 30px; 
         border: 1px solid #333; box-shadow: 0 10px 30px rgba(0,0,0,0.5); overflow: hidden;
@@ -318,36 +242,48 @@ st.markdown("""
     .card-header { padding: 15px 20px; background: #1e1e1e; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; }
     .stock-name { font-size: 22px; font-weight: 900; color: #fff; }
     .stock-score { font-size: 14px; font-weight: bold; background: #333; padding: 5px 12px; border-radius: 20px; color: #fff; border: 1px solid #555; }
+    
+    /* Tags & Info */
     .tag-container { padding: 15px 20px 5px 20px; display: flex; flex-wrap: wrap; gap: 8px; }
     .tag { font-size: 12px; font-weight: bold; padding: 4px 10px; border-radius: 6px; color: #000; display: inline-block; }
     .tag-best { background: #00FF00; box-shadow: 0 0 10px rgba(0,255,0,0.4); }
     .tag-good { background: #00C9FF; }
     .tag-bad { background: #FF4444; color: #fff; }
     .tag-base { background: #555; color: #ccc; }
+    
     .info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1px; background: #333; margin: 15px 20px; border: 1px solid #333; }
     .info-item { background: #121212; padding: 10px; text-align: center; }
     .info-label { font-size: 11px; color: #888; display: block; margin-bottom: 3px; }
     .info-val { font-size: 15px; font-weight: bold; color: #fff; }
+    
     .action-box { margin: 0 20px 20px 20px; background: #1a1a1a; border-radius: 10px; padding: 15px; border-left: 4px solid #fff; }
     .ab-title { font-size: 14px; font-weight: bold; margin-bottom: 8px; color: #aaa; text-transform: uppercase; }
     .ab-content { font-size: 14px; line-height: 1.6; color: #eee; margin-bottom: 15px; }
     .rationale-box { background: #0d1117; padding: 12px; border-radius: 8px; font-size: 13px; color: #ccc; line-height: 1.5; border: 1px solid #333; }
     .rat-label { color: #888; font-weight: bold; font-size: 12px; margin-bottom: 4px; display:block; }
+    
     .timeline { display: flex; justify-content: space-between; background: #0f0f0f; padding: 15px 25px; border-top: 1px solid #333; }
     .tl-item { text-align: center; }
     .tl-label { font-size: 11px; color: #666; margin-bottom: 4px; }
     .tl-val { font-size: 16px; font-weight: bold; color: #fff; }
+    
+    /* Advisors */
     .hamzzi-box { background: linear-gradient(135deg, #2c241b, #1a1510); border: 2px solid #FFAA00; border-radius: 16px; padding: 25px; color: #eee; margin-bottom: 15px; box-shadow: 0 0 20px rgba(255, 170, 0, 0.2); }
     .hamzzi-title { color: #FFAA00; font-size: 20px; font-weight: 900; margin-bottom: 15px; display: flex; align-items: center; gap: 10px;}
     .tiger-box { background: linear-gradient(135deg, #3d0000, #1a0000); border: 2px solid #FF4444; border-radius: 16px; padding: 25px; color: #eee; margin-bottom: 25px; box-shadow: 0 0 20px rgba(255, 68, 68, 0.2); }
     .tiger-title { color: #FF4444; font-size: 20px; font-weight: 900; margin-bottom: 15px; display: flex; align-items: center; gap: 10px;}
+    
     .rank-ribbon { position: absolute; top: 0; left: 0; padding: 5px 12px; font-size: 12px; font-weight: bold; color: #fff; background: linear-gradient(45deg, #FF416C, #FF4B2B); border-bottom-right-radius: 12px; z-index: 5; }
+    
     .hud-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; background: #0d1117; padding: 10px; border-radius: 8px; }
     .hud-item { background: #21262d; padding: 8px; border-radius: 6px; text-align: center; border: 1px solid #30363d; }
     .hud-label { font-size: 10px; color: #8b949e; display: block; margin-bottom: 2px; }
     .hud-val { font-size: 13px; color: #58a6ff; font-weight: bold; }
+    
+    /* Progress Bar */
     .prog-bg { background: #333; height: 8px; border-radius: 4px; width: 100%; }
     .prog-fill { height: 100%; border-radius: 4px; transition: width 0.5s; }
+    
     div[data-testid="column"]:nth-child(5) { margin-left: -20px !important; margin-top: 2px; }
     header, footer {visibility: hidden;}
 </style>
@@ -355,7 +291,7 @@ st.markdown("""
 
 st.markdown("<div class='app-title'>🐯 Tiger&Hamzzi Quant 🐹</div>", unsafe_allow_html=True)
 
-# [STATE INIT]
+# [SESSION STATE]
 if 'portfolio' not in st.session_state: st.session_state.portfolio = []
 if 'ideal_list' not in st.session_state: st.session_state.ideal_list = []
 if 'sc_list' not in st.session_state: st.session_state.sc_list = []
@@ -364,15 +300,71 @@ if 'cash' not in st.session_state: st.session_state.cash = 10000000
 if 'target_return' not in st.session_state: st.session_state.target_return = 5.0
 if 'my_diagnosis' not in st.session_state: st.session_state.my_diagnosis = []
 if 'display_mode' not in st.session_state: st.session_state.display_mode = None
-# Timers
+# Triggers & Timers
 if 'l_my' not in st.session_state: st.session_state.l_my = 0
 if 'l_top3' not in st.session_state: st.session_state.l_top3 = 0
 if 'l_sep' not in st.session_state: st.session_state.l_sep = 0
+if 'trigger_my' not in st.session_state: st.session_state.trigger_my = False
+if 'trigger_top3' not in st.session_state: st.session_state.trigger_top3 = False
+if 'trigger_sep' not in st.session_state: st.session_state.trigger_sep = False
 
-# Stock list for autocomplete
 stock_names = get_stock_list()
 
-# [LAYOUT]
+# [CORE EXECUTION FUNCTIONS]
+def run_my_diagnosis():
+    engine = SingularityEngine(); market_data = load_top50_data(); my_res = []
+    with st.spinner("내 보유 종목 정밀 해부 중..."):
+        for s in st.session_state.portfolio:
+            if not s['name']: continue
+            mode = "scalping" if s['strategy'] == "초단타" else "swing"
+            price = s['price']
+            match = market_data[market_data['Name'] == s['name']]
+            if not match.empty: price = int(match.iloc[0]['Close'])
+            else:
+                try: df = fdr.StockListing('KRX'); code = df[df['Name'] == s['name']].iloc[0]['Code']; p = fdr.DataReader(code); price = int(p['Close'].iloc[-1])
+                except: pass
+            wr, m, tags = engine.run_diagnosis(s['name'], mode)
+            plan = engine.generate_report(mode, price, m, wr, st.session_state.cash, s['qty'], st.session_state.target_return)
+            pnl = ((price - s['price'])/s['price']*100) if s['price']>0 else 0
+            my_res.append({'name': s['name'], 'price': price, 'pnl': pnl, 'win': wr, 'm': m, 'tags': tags, 'plan': plan})
+    st.session_state.my_diagnosis = my_res
+    st.session_state.l_my = time.time()
+    st.session_state.trigger_my = False # Reset trigger
+
+def run_market_scan(mode):
+    engine = SingularityEngine(); market_data = load_top50_data()
+    sc, sw, ideal = [], [], []
+    with st.spinner("전 종목 정밀 타격 및 랭킹 산출 중..."):
+        for _, row in market_data.iterrows():
+            if pd.isna(row['Close']): continue
+            price = int(float(row['Close'])); name = row['Name']
+            
+            wr_sc, m_sc, t_sc = engine.run_diagnosis(name, "scalping")
+            p_sc = engine.generate_report("scalping", price, m_sc, wr_sc, st.session_state.cash, 0, st.session_state.target_return)
+            item_sc = {'name': name, 'price': price, 'win': wr_sc, 'mode': '초단타', 'tags': t_sc, 'plan': p_sc, 'm': m_sc}
+            sc.append(item_sc)
+            
+            wr_sw, m_sw, t_sw = engine.run_diagnosis(name, "swing")
+            p_sw = engine.generate_report("swing", price, m_sw, wr_sw, st.session_state.cash, 0, st.session_state.target_return)
+            item_sw = {'name': name, 'price': price, 'win': wr_sw, 'mode': '추세추종', 'tags': t_sw, 'plan': p_sw, 'm': m_sw}
+            sw.append(item_sw)
+            
+            if wr_sc >= wr_sw: ideal.append(item_sc)
+            else: ideal.append(item_sw)
+            
+    sc.sort(key=lambda x: x['win'], reverse=True)
+    sw.sort(key=lambda x: x['win'], reverse=True)
+    ideal.sort(key=lambda x: x['win'], reverse=True)
+    st.session_state.sc_list = sc[:3]; st.session_state.sw_list = sw[:3]; st.session_state.ideal_list = ideal[:3]
+    
+    if mode == 'TOP3': 
+        st.session_state.l_top3 = time.time()
+        st.session_state.trigger_top3 = False
+    else: 
+        st.session_state.l_sep = time.time()
+        st.session_state.trigger_sep = False
+
+# [UI: PERSONAL PORTFOLIO]
 with st.expander("💰 내 자산 및 포트폴리오 (Personal)", expanded=True):
     c1, c2, c3 = st.columns(3)
     with c1: st.session_state.cash = st.number_input("예수금 (KRW)", value=st.session_state.cash, step=100000)
@@ -382,7 +374,6 @@ with st.expander("💰 내 자산 및 포트폴리오 (Personal)", expanded=True
         if st.button("➕ 종목 추가", use_container_width=True):
             st.session_state.portfolio.append({'name': '삼성전자', 'price': 0, 'qty': 0, 'strategy': '추세추종'})
             st.rerun()
-            
     st.markdown("---")
     
     if st.session_state.portfolio:
@@ -395,7 +386,6 @@ with st.expander("💰 내 자산 및 포트폴리오 (Personal)", expanded=True
         for i, s in enumerate(st.session_state.portfolio):
             c1, c2, c3, c4, c5 = st.columns([3.2, 1.8, 1.3, 2.0, 0.4])
             with c1: 
-                # Autocomplete Selectbox
                 try: idx = stock_names.index(s['name'])
                 except: idx = 0
                 s['name'] = st.selectbox(f"n{i}", stock_names, index=idx, label_visibility="collapsed")
@@ -407,14 +397,16 @@ with st.expander("💰 내 자산 및 포트폴리오 (Personal)", expanded=True
     else: st.info("보유 종목이 없습니다. 우측 상단 '➕ 종목 추가' 버튼을 눌러주세요.")
 
     st.markdown("<br>", unsafe_allow_html=True)
+    
+    # MY DIAGNOSIS BUTTON & TIMER
     if st.button("📝 내 종목만 진단하기", use_container_width=True):
         st.session_state.display_mode = 'MY'
-        st.session_state.l_my = 0 # Force Run
+        st.session_state.trigger_my = True # Trigger flag set
         st.rerun()
         
     auto_my = st.selectbox("⏱️ 내 종목 자동진단 주기", list(TIME_OPTS.keys()), index=0, key="tm_my", label_visibility="collapsed")
 
-    # Advisors
+    # ADVISORS
     st.markdown("<br>", unsafe_allow_html=True)
     bc1, bc2 = st.columns(2)
     with bc1:
@@ -430,7 +422,7 @@ with st.expander("💰 내 자산 및 포트폴리오 (Personal)", expanded=True
             
     if 'adv_msg' in st.session_state: st.markdown(st.session_state.adv_msg, unsafe_allow_html=True)
 
-# Helper Function: Render Card
+# Helper Function
 def render_full_card(d, idx=None, is_rank=False):
     p = d['plan']
     tag_html = "".join([f"<span class='tag tag-{t['type']}'>{t['label']} {t['val']}</span> " for t in d['tags']])
@@ -499,23 +491,18 @@ b1, b2 = st.columns(2)
 with b1:
     if st.button("🏆 타이거&햄찌 출격! (Top 3)"):
         st.session_state.display_mode = 'TOP3'
-        st.session_state.l_top3 = 0 # Force Run
+        st.session_state.trigger_top3 = True # Trigger flag set
         st.rerun()
     auto_top3 = st.selectbox("타이머1", list(TIME_OPTS.keys()), index=0, key="tm_top3", label_visibility="collapsed")
 
 with b2:
     if st.button("📊 단타 / 추세 (전략별 보기)"):
         st.session_state.display_mode = 'SEPARATE'
-        st.session_state.l_sep = 0 # Force Run
+        st.session_state.trigger_sep = True # Trigger flag set
         st.rerun()
     auto_sep = st.selectbox("타이머2", list(TIME_OPTS.keys()), index=0, key="tm_sep", label_visibility="collapsed")
 
 # [MARKET RESULTS]
-# Decide which view to show
-if 'view_target' not in st.session_state: st.session_state.view_target = None
-
-# Logic: Which button was clicked most recently OR which timer triggered?
-# Simple logic: If we have ideal list and Top3 mode was active/clicked
 if st.session_state.display_mode == 'TOP3' and st.session_state.ideal_list:
     st.markdown("<h5>🏆 금일의 Singularity Ideal Pick (Top 3)</h5>", unsafe_allow_html=True)
     for i, d in enumerate(st.session_state.ideal_list): render_full_card(d, i, is_rank=True)
@@ -528,33 +515,35 @@ elif st.session_state.display_mode == 'SEPARATE' and (st.session_state.sc_list o
     with t2:
         for i, d in enumerate(st.session_state.sw_list): render_full_card(d, i, is_rank=True)
 
-# [AUTO REFRESH LOOP]
+# [EXECUTION LOGIC CHECK - MAIN LOOP]
 now = time.time()
 need_rerun = False
 
-# My Diagnosis Auto Run
-if TIME_OPTS[auto_my] > 0 and (now - st.session_state.l_my > TIME_OPTS[auto_my] or st.session_state.l_my == 0):
+# Logic: Manual Trigger OR Auto Timer
+# 1. My Diagnosis
+t_val_my = TIME_OPTS[auto_my]
+if st.session_state.trigger_my or (t_val_my > 0 and now - st.session_state.l_my > t_val_my):
     if st.session_state.display_mode == 'MY':
         run_my_diagnosis()
         need_rerun = True
 
-# Top 3 Auto Run
-if TIME_OPTS[auto_top3] > 0 and (now - st.session_state.l_top3 > TIME_OPTS[auto_top3] or st.session_state.l_top3 == 0):
+# 2. Top 3
+t_val_top3 = TIME_OPTS[auto_top3]
+if st.session_state.trigger_top3 or (t_val_top3 > 0 and now - st.session_state.l_top3 > t_val_top3):
     if st.session_state.display_mode == 'TOP3':
-        run_market_scan()
-        st.session_state.l_top3 = now
+        run_market_scan('TOP3')
         need_rerun = True
 
-# Separate Auto Run
-if TIME_OPTS[auto_sep] > 0 and (now - st.session_state.l_sep > TIME_OPTS[auto_sep] or st.session_state.l_sep == 0):
+# 3. Separate
+t_val_sep = TIME_OPTS[auto_sep]
+if st.session_state.trigger_sep or (t_val_sep > 0 and now - st.session_state.l_sep > t_val_sep):
     if st.session_state.display_mode == 'SEPARATE':
-        run_market_scan()
-        st.session_state.l_sep = now
+        run_market_scan('SEPARATE')
         need_rerun = True
 
 if need_rerun: st.rerun()
 
-# Keep Alive Loop (if any timer is active)
-if TIME_OPTS[auto_my] > 0 or TIME_OPTS[auto_top3] > 0 or TIME_OPTS[auto_sep] > 0:
+# Timer Keep-Alive
+if t_val_my > 0 or t_val_top3 > 0 or t_val_sep > 0:
     time.sleep(1)
     st.rerun()
