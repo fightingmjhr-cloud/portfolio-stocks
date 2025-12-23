@@ -5,13 +5,14 @@ import time
 import FinanceDataReader as fdr
 
 # -----------------------------------------------------------------------------
-# [CORE ENGINE] 8대 엔진 (Apocalypse Standard + User Target)
+# [CORE ENGINE] 8대 엔진 & 햄찌 어드바이저
 # -----------------------------------------------------------------------------
 
 class SingularityEngine:
     def __init__(self):
         pass
 
+    # [1] 8대 엔진 지표 생성
     def _calculate_metrics(self, mode):
         # 1. Physics
         omega = np.random.uniform(5.0, 25.0) 
@@ -37,28 +38,28 @@ class SingularityEngine:
             "gnn": gnn, "sent": sent, "es": es, "kelly": kelly
         }
 
-    # [CRITICAL LOGIC] 보수적 승률 산정
+    # [2] 승률 산정 (보수적)
     def run_diagnosis(self, mode="swing"):
         m = self._calculate_metrics(mode)
         score = 35.0 
         reasons = [] 
 
         # Penalties
-        if m['vpin'] > 0.6: score -= 15; reasons.append("☠️ 독성매물 위험")
+        if m['vpin'] > 0.6: score -= 15; reasons.append("☠️ 독성 위험")
         if m['es'] < -0.15: score -= 15; reasons.append("💣 폭락 징후")
-        if m['betti'] == 1: score -= 10; reasons.append("⚠️ 구조적 붕괴")
+        if m['betti'] == 1: score -= 10; reasons.append("⚠️ 구조 붕괴")
 
         # Bonuses
         if mode == "scalping":
-            if m['hawkes'] > 2.5 and m['obi'] > 0.5 and m['vpin'] < 0.3:
-                score += 40; reasons.append(f"🚀 퍼펙트 수급({m['hawkes']:.1f})")
-            elif m['hawkes'] > 1.5 and m['obi'] > 0.2:
+            if m['hawkes'] > 2.5 and m['obi'] > 0.5:
+                score += 40; reasons.append(f"🚀 퍼펙트 수급")
+            elif m['hawkes'] > 1.5:
                 score += 15; reasons.append("⚡ 수급 우위")
             elif m['hawkes'] < 0.8:
                 score -= 10; reasons.append("💤 거래 소강")
         else: 
             if m['hurst'] > 0.75 and m['gnn'] > 0.8:
-                score += 35; reasons.append(f"📈 대세 상승장({m['hurst']:.2f})")
+                score += 35; reasons.append(f"📈 대세 상승장")
             elif m['hurst'] > 0.6:
                 score += 10; reasons.append("↗️ 추세 양호")
             else:
@@ -73,45 +74,66 @@ class SingularityEngine:
         
         return win_rate, m, reasons
 
-    # 자산 배분 (사용자 목표 수익률 반영)
-    def generate_asset_plan(self, mode, price, m, wr, cash, current_qty, user_target_pct):
+    # [3] 자산 배분 플랜
+    def generate_asset_plan(self, mode, price, m, wr, cash, current_qty, target_return):
         adjusted_kelly = m['kelly'] * (wr / 0.8) if wr < 0.8 else m['kelly']
         alloc_cash = cash * adjusted_kelly
         can_buy_qty = int(alloc_cash / price) if price > 0 else 0
-        
-        # 목표가 설정 (사용자 입력 반영)
-        target_mult = 1 + (user_target_pct / 100)
+        target_mult = 1 + (target_return / 100)
         
         if mode == "scalping":
             vol = m['vol_surf'] * 0.04
             entry = int(price * (1 - vol))
-            # 목표가는 사용자가 설정한 것과 변동성 중 큰 값 선택
             target = max(int(price * target_mult), int(price * (1 + vol*1.5)))
             stop = int(price * (1 - vol*0.7))
-            time = "09:00 ~ 10:00 (초집중)"
+            time = "09:00 ~ 10:00"
         else:
             target = int(price * target_mult)
             stop = int(price * 0.93)
-            time = "종가 확인 후 대응"
+            time = "종가 확인 후"
 
         if wr >= 0.75:
             cmd = "🔥 STRONG BUY"
             style = "color: #00FF00;"
-            msg = f"승률 {wr*100:.0f}%의 기회입니다. 현금의 {int(adjusted_kelly*100)}%를 투입하여 **{can_buy_qty}주**를 매수하십시오."
+            msg = f"승률 {wr*100:.0f}%의 기회! 현금 {int(adjusted_kelly*100)}% 투입하여 **{can_buy_qty}주** 매수."
         elif wr >= 0.55:
             cmd = "⚖️ BUY / HOLD"
             style = "color: #FFAA00;"
-            msg = f"리스크가 존재합니다. **{int(can_buy_qty/2)}주** 정도만 분할 진입하여 평단을 관리하십시오."
+            msg = f"리스크 관리 필요. **{int(can_buy_qty/2)}주**만 분할 진입하세요."
         else:
             cmd = "🛡️ SELL / WAIT"
             style = "color: #FF4444;"
-            msg = f"현재 승률({wr*100:.0f}%)이 낮습니다. **진입 금지** 및 현금 보유가 최선의 전략입니다."
+            msg = f"승률({wr*100:.0f}%) 저조. 진입 금지 및 현금 확보."
 
         return {
             "cmd": cmd, "msg": msg, "time": time, "style": style,
             "prices": (entry if mode=='scalping' else price, target, stop),
             "qty_guide": can_buy_qty
         }
+
+    # [4] 🐹 햄찌의 잔소리 (Portfolio Advisor)
+    def hamzzi_advice(self, cash, portfolio_val, pnl_avg):
+        total_asset = cash + portfolio_val
+        cash_ratio = (cash / total_asset) * 100 if total_asset > 0 else 0
+        
+        title = "🐹 햄찌의 계좌 훈수"
+        
+        if total_asset == 0:
+            return title, "사장님... 돈이 없는데요? 0원으로 뭘 하려고요? 😭"
+            
+        if pnl_avg > 10:
+            msg = "이야~ 사장님! 주식 좀 하시는데요? 오늘 저녁은 소고기 콜? 🥩 (그래도 익절은 하세요!)"
+        elif pnl_avg < -10:
+            msg = "아이고... 계좌가 파랗게 질렸네. 😱 지금은 뇌동매매 금지! 숨 참으세요!"
+        else:
+            msg = "아직은 간 보는 중이네요. 지루해도 원칙 지키는 사람이 승리합니다! 😐"
+            
+        if cash_ratio > 80:
+            msg += "\n\n(근데 현금이 너무 많아요! 쫄보입니까? 좋은 종목 좀 담아보세요!)"
+        elif cash_ratio < 10:
+            msg += "\n\n(현금 0원? 상남자시네... 하락장 오면 어쩌려고요? 현금 좀 챙기세요!)"
+            
+        return title, msg
 
 # [DATA]
 @st.cache_data(ttl=3600)
@@ -148,11 +170,22 @@ st.markdown("""
         border: 1px solid #2d333b; box-shadow: 0 8px 25px rgba(0,0,0,0.7); position: relative;
     }
     
+    /* Badges */
     .logic-badge {
         display: inline-block; background: #1f242d; border: 1px solid #333; color: #00C9FF; 
         padding: 4px 10px; border-radius: 20px; font-size: 11px; margin-right: 6px; margin-bottom: 6px; font-weight: bold;
     }
     
+    /* Rank Badge Correction: Top Left Ribbon */
+    .rank-badge {
+        position: absolute; top: 0; left: 0; 
+        background: linear-gradient(135deg, #FF4444, #FF0000); color: #fff; 
+        font-weight: bold; padding: 6px 12px; border-bottom-right-radius: 12px; 
+        border-top-left-radius: 16px; font-size: 13px; z-index: 10;
+        box-shadow: 2px 2px 10px rgba(0,0,0,0.5);
+    }
+    
+    /* Action Section */
     .action-section {
         background: #161b22; border-radius: 12px; padding: 15px; margin-top: 15px;
         border-left: 4px solid #FFFF00; font-size: 14px;
@@ -164,12 +197,6 @@ st.markdown("""
     }
     .t-item b { color: #fff; font-size: 13px; }
     
-    .rank-badge {
-        position: absolute; top: 10px; right: 10px; 
-        background: #FF4444; color: #fff; font-weight: bold; padding: 5px 10px; border-radius: 20px; font-size: 12px;
-        box-shadow: 0 0 10px rgba(255,0,0,0.5); z-index: 10;
-    }
-    
     .hud-grid {
         display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px;
         background: #0d1117; padding: 10px; border-radius: 8px;
@@ -180,9 +207,14 @@ st.markdown("""
     .hud-label { font-size: 10px; color: #8b949e; display: block; margin-bottom: 2px; }
     .hud-val { font-size: 13px; color: #58a6ff; font-weight: bold; }
 
-    /* Delete Button Alignment */
+    /* Hamzzi Message Box */
+    .hamzzi-box {
+        background-color: #2d1f15; border: 2px solid #FFAA00; border-radius: 15px;
+        padding: 20px; text-align: center; color: #FFAA00; margin-bottom: 20px;
+        font-size: 16px; font-weight: bold; box-shadow: 0 0 15px rgba(255, 170, 0, 0.3);
+    }
+
     div[data-testid="column"]:nth-child(5) { margin-left: -20px !important; margin-top: 2px; }
-    
     header, footer {visibility: hidden;}
 </style>
 """, unsafe_allow_html=True)
@@ -196,37 +228,31 @@ if 'sc_list' not in st.session_state: st.session_state.sc_list = []
 if 'sw_list' not in st.session_state: st.session_state.sw_list = []
 if 'cash' not in st.session_state: st.session_state.cash = 10000000 
 if 'target_return' not in st.session_state: st.session_state.target_return = 5.0
-if 'display_mode' not in st.session_state: st.session_state.display_mode = None
+if 'display_mode' not in st.session_state: st.session_state.display_mode = None 
+if 'my_diagnosis' not in st.session_state: st.session_state.my_diagnosis = []
 
-# [INPUT PANEL: 3-Column Layout]
+# [INPUT PANEL]
 with st.expander("💰 자산 및 포트폴리오 관리", expanded=True):
-    # 상단 3분할: 예수금 / 목표수익 / 종목추가
     c_top1, c_top2, c_top3 = st.columns(3)
-    
-    with c_top1:
-        st.session_state.cash = st.number_input("💰 예수금 (원)", value=st.session_state.cash, step=100000)
-    with c_top2:
-        st.session_state.target_return = st.number_input("🎯 목표 수익률 (%)", value=st.session_state.target_return, step=1.0)
+    with c_top1: st.session_state.cash = st.number_input("💰 예수금 (원)", value=st.session_state.cash, step=100000)
+    with c_top2: st.session_state.target_return = st.number_input("🎯 목표 수익률 (%)", value=st.session_state.target_return, step=1.0)
     with c_top3:
-        st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True) # Spacer
+        st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
         if st.button("➕ 종목 추가", use_container_width=True):
             st.session_state.portfolio.append({'name': '', 'price': 0, 'qty': 0, 'strategy': '추세추종'})
             st.rerun()
             
     st.markdown("---")
     
-    # 보유 종목 리스트
     if not st.session_state.portfolio:
-        st.info("보유 종목이 없습니다. 상단의 '➕ 종목 추가' 버튼을 눌러주세요.")
+        st.info("보유 종목이 없습니다.")
     else:
-        # 헤더
         h1, h2, h3, h4, h5 = st.columns([3.2, 1.8, 1.3, 2.0, 0.4])
         h1.markdown("<small style='color:#888'>종목명</small>", unsafe_allow_html=True)
         h2.markdown("<small style='color:#888'>평단가</small>", unsafe_allow_html=True)
         h3.markdown("<small style='color:#888'>수량</small>", unsafe_allow_html=True)
         h4.markdown("<small style='color:#888'>전략</small>", unsafe_allow_html=True)
         
-        # 리스트 루프
         for i, stock in enumerate(st.session_state.portfolio):
             c1, c2, c3, c4, c5 = st.columns([3.2, 1.8, 1.3, 2.0, 0.4])
             with c1: stock['name'] = st.text_input(f"n{i}", value=stock['name'], label_visibility="collapsed", placeholder="삼성전자")
@@ -236,37 +262,75 @@ with st.expander("💰 자산 및 포트폴리오 관리", expanded=True):
             with c5:
                 if st.button("🗑️", key=f"del_{i}"): st.session_state.portfolio.pop(i); st.rerun()
 
-# [DUAL LAUNCH BUTTONS]
-st.markdown("<br>", unsafe_allow_html=True)
-c_btn1, c_btn2 = st.columns(2)
-
-def run_full_scan():
-    with st.spinner("8대 엔진 정밀 분석 중... (지구 멸망급 안전마진 적용)"):
+    # [BUTTON: MY STOCK DIAGNOSIS]
+    st.markdown("<br>", unsafe_allow_html=True)
+    if st.button("📝 내 종목만 진단하기 (My Stock Only)", use_container_width=True):
+        st.session_state.display_mode = 'MY'
+        st.session_state.running = True
+        
         engine = SingularityEngine()
         market_data = load_top50_data() 
-        
-        # 1. 내 종목
         my_results = []
+        
+        with st.spinner("내 보유 종목 정밀 분석 중..."):
+            for s in st.session_state.portfolio:
+                if not s['name']: continue
+                mode = "scalping" if s['strategy'] == "초단타" else "swing"
+                price = s['price']
+                match = market_data[market_data['Name'] == s['name']]
+                if not match.empty: price = int(match.iloc[0]['Close'])
+                else:
+                    try: 
+                        df = fdr.StockListing('KRX'); code = df[df['Name'] == s['name']].iloc[0]['Code']
+                        p_df = fdr.DataReader(code); price = int(p_df['Close'].iloc[-1])
+                    except: pass
+                
+                wr, m, reasons = engine.run_diagnosis(mode)
+                plan = engine.generate_asset_plan(mode, price, m, wr, st.session_state.cash, s['qty'], st.session_state.target_return)
+                pnl = ((price - s['price'])/s['price']*100) if s['price'] > 0 else 0
+                my_results.append({'name': s['name'], 'price': price, 'pnl': pnl, 'win': wr, 'mode': mode, 'm': m, 'reasons': reasons, 'plan': plan})
+            st.session_state.my_diagnosis = my_results
+        st.rerun()
+
+# [BUTTON: CUTE ADVISOR]
+st.markdown("<br>", unsafe_allow_html=True)
+if st.button("🐹 햄찌의 계좌 훈수 두기 (Portfolio Advice)", use_container_width=True):
+    engine = SingularityEngine()
+    
+    # Portfolio Valuation
+    port_val = 0
+    total_pnl_pct = 0
+    
+    if st.session_state.portfolio:
+        total_invest = 0
+        current_val = 0
+        market_data = load_top50_data()
+        
         for s in st.session_state.portfolio:
             if not s['name']: continue
-            mode = "scalping" if s['strategy'] == "초단타" else "swing"
             price = s['price']
             match = market_data[market_data['Name'] == s['name']]
             if not match.empty: price = int(match.iloc[0]['Close'])
-            else:
-                try: 
-                    df = fdr.StockListing('KRX'); code = df[df['Name'] == s['name']].iloc[0]['Code']
-                    p_df = fdr.DataReader(code); price = int(p_df['Close'].iloc[-1])
-                except: pass
             
-            wr, m, reasons = engine.run_diagnosis(mode)
-            plan = engine.generate_asset_plan(mode, price, m, wr, st.session_state.cash, s['qty'], st.session_state.target_return)
-            pnl = ((price - s['price'])/s['price']*100) if s['price'] > 0 else 0
-            my_results.append({'name': s['name'], 'price': price, 'pnl': pnl, 'win': wr, 'mode': mode, 'm': m, 'reasons': reasons, 'plan': plan})
-        st.session_state.my_diagnosis = my_results
+            total_invest += s['price'] * s['qty']
+            current_val += price * s['qty']
+            
+        port_val = current_val
+        if total_invest > 0:
+            total_pnl_pct = ((current_val - total_invest) / total_invest) * 100
+            
+    title, msg = engine.hamzzi_advice(st.session_state.cash, port_val, total_pnl_pct)
+    st.markdown(f"<div class='hamzzi-box'><div>{title}</div><br><div style='font-size:14px; color:#eee;'>{msg}</div></div>", unsafe_allow_html=True)
 
-        # 2. 랭킹 스캔
+# [DUAL LAUNCH BUTTONS]
+c_btn1, c_btn2 = st.columns(2)
+
+def run_market_scan():
+    with st.spinner("코스피/코스닥 전 종목 정밀 타격 중..."):
+        engine = SingularityEngine()
+        market_data = load_top50_data() 
         sc_all, sw_all, ideal_all = [], [], []
+        
         for _, row in market_data.iterrows():
             if pd.isna(row['Close']): continue
             price = int(float(row['Close']))
@@ -292,31 +356,32 @@ def run_full_scan():
         st.session_state.ideal_list = ideal_all[:3]
 
 # Left: Top 3
-if c_btn1.button("🐯 타이거&햄찌 출격! (Top 3) 🐹"):
+if c_btn1.button("🏆 타이거&햄찌 출격! (Top 3)"):
     st.session_state.running = True
     st.session_state.display_mode = 'TOP3'
-    run_full_scan()
+    run_market_scan()
     st.rerun()
 
 # Right: Separate
-if c_btn2.button("🐯 단타 / 추세 (전략별 보기) 🐹"):
+if c_btn2.button("📊 단타 / 추세 (전략별 보기)"):
     st.session_state.running = True
     st.session_state.display_mode = 'SEPARATE'
-    run_full_scan()
+    run_market_scan()
     st.rerun()
 
-# [DISPLAY]
+# [DISPLAY RESULTS]
 st.markdown("---")
 
 if st.session_state.get('running'):
     
-    # 1. My Stocks
-    if 'my_diagnosis' in st.session_state and st.session_state.my_diagnosis:
+    # 1. MY DIAGNOSIS
+    if st.session_state.display_mode == 'MY' and st.session_state.my_diagnosis:
         st.markdown("<h5>👤 내 보유 종목 정밀 진단</h5>", unsafe_allow_html=True)
         for d in st.session_state.my_diagnosis:
             p = d['plan']
             border = "#00FF00" if d['win'] >= 0.75 else ("#FFAA00" if d['win'] >= 0.55 else "#FF4444")
             badges = "".join([f"<span class='logic-badge'>{r}</span>" for r in d['reasons']])
+            
             st.markdown(f"""
             <div class='stock-card' style='border-left: 5px solid {border};'>
                 <div style='display:flex; justify-content:space-between; align-items:center;'>
@@ -354,18 +419,17 @@ if st.session_state.get('running'):
                 </div>
                 """, unsafe_allow_html=True)
 
-    # 2. Case A: Top 3
-    if st.session_state.display_mode == 'TOP3' and st.session_state.ideal_list:
-        st.markdown("<br><h5>🏆 오늘의 Singularity Ideal Pick (Top 3)</h5>", unsafe_allow_html=True)
-        st.info("💡 전략(초단타/추세) 구분 없이 8대 엔진 점수가 가장 높은 절대 강자들입니다.")
+    # 2. TOP 3 MODE
+    elif st.session_state.display_mode == 'TOP3' and st.session_state.ideal_list:
+        st.markdown("<h5>🏆 오늘의 Singularity Ideal Pick (Top 3)</h5>", unsafe_allow_html=True)
         for idx, r in enumerate(st.session_state.ideal_list):
             p = r['plan']
             border = "#FFFFFF"
             badges = "".join([f"<span class='logic-badge'>{rea}</span>" for rea in r['reasons']])
             st.markdown(f"""
             <div class='stock-card' style='border: 2px solid {border}; box-shadow: 0 0 15px rgba(255,255,255,0.15);'>
-                <div class='rank-badge' style='background:#fff; color:#000;'>통합 {idx+1}위</div>
-                <div style='display:flex; justify-content:space-between; align-items:center;'>
+                <div class='rank-badge'>통합 {idx+1}위</div>
+                <div style='display:flex; justify-content:space-between; align-items:center; padding-left: 10px;'>
                     <span style='font-size:24px; font-weight:bold; color:#fff;'>{r['name']}</span>
                     <span class='badge' style='background:#fff; color:#000;'>{r['mode']} / {r['win']*100:.1f}점</span>
                 </div>
@@ -396,9 +460,9 @@ if st.session_state.get('running'):
                 </div>
                 """, unsafe_allow_html=True)
 
-    # 3. Case B: Separate
+    # 3. SEPARATE MODE
     elif st.session_state.display_mode == 'SEPARATE':
-        st.markdown("<br><h5>📊 전략별 절대 랭킹 (Top 3)</h5>", unsafe_allow_html=True)
+        st.markdown("<h5>📊 전략별 절대 랭킹 (Top 3)</h5>", unsafe_allow_html=True)
         tab1, tab2 = st.tabs(["⚡ 초단타 랭킹", "🌊 추세추종 랭킹"])
         
         def render_rec(data, color):
@@ -407,8 +471,8 @@ if st.session_state.get('running'):
                 badges = "".join([f"<span class='logic-badge'>{rea}</span>" for rea in r['reasons']])
                 st.markdown(f"""
                 <div class='stock-card' style='border-left: 5px solid {color};'>
-                    <div class='rank-badge' style='background:{color}; color:#000;'>{idx+1}위</div>
-                    <div style='display:flex; justify-content:space-between; align-items:center;'>
+                    <div class='rank-badge' style='background:{color}; border-radius: 16px 0 16px 0;'>{idx+1}위</div>
+                    <div style='display:flex; justify-content:space-between; align-items:center; padding-left:10px;'>
                         <span style='font-size:22px; font-weight:bold; color:#fff;'>{r['name']}</span>
                         <span class='badge' style='background:{color}; color:#000;'>{r['win']*100:.1f}%</span>
                     </div>
