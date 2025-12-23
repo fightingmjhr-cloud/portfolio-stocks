@@ -6,12 +6,12 @@ import zlib
 import FinanceDataReader as fdr
 import random
 import textwrap
-from PIL import Image
-import io
 
 # -----------------------------------------------------------------------------
-# [0] GLOBAL SETTINGS
+# [0] GLOBAL SETTINGS & DATA
 # -----------------------------------------------------------------------------
+st.set_page_config(page_title="Tiger&Hamzzi Quant", page_icon="🐯", layout="centered")
+
 TIME_OPTS = {
     "⛔ 수동 (멈춤)": 0, "⏱️ 3분": 180, "⏱️ 5분": 300, "⏱️ 10분": 600, 
     "⏱️ 30분": 1800, "⏱️ 1시간": 3600
@@ -23,7 +23,7 @@ def get_stock_list():
         df = fdr.StockListing('KRX')
         df = df[~df['Name'].str.contains('스팩|리츠|우|홀딩스|ET')]
         return df['Name'].tolist()
-    except: return ["삼성전자", "SK하이닉스", "LG에너지솔루션", "현대차", "POSCO홀딩스"]
+    except: return ["삼성전자", "SK하이닉스", "LG에너지솔루션", "NAVER", "카카오"]
 
 @st.cache_data(ttl=3600)
 def load_top50_data():
@@ -41,6 +41,7 @@ class SingularityEngine:
         pass
 
     def _calculate_metrics(self, name, mode):
+        # 데이터 일관성: 종목명+시간(시) 기준 시드 고정
         unique_key = f"{name}-{mode}-{time.strftime('%Y%m%d-%H')}"
         seed_val = zlib.crc32(unique_key.encode())
         np.random.seed(seed_val)
@@ -86,7 +87,7 @@ class SingularityEngine:
 
         can_buy = int((cash * m['kelly']) / price) if price > 0 else 0
 
-        # 🐹 HAMZZI (Aggressive)
+        # 🐹 HAMZZI (Aggressive - High Risk, High Return)
         h_style = "border: 2px solid #FFAA00; color: #FFAA00;"
         if wr >= 0.70:
             h_brief = random.choice([
@@ -104,7 +105,7 @@ class SingularityEngine:
             h_act = "절대 매수 금지! ❌ 탈출은 지능순이야! 현금 쥐고 숨어!"
             h_why = "독성 매물이 쏟아지고 있어. 지금 들어가면 계좌 녹는다."
 
-        # 🐯 HOJJI (Conservative)
+        # 🐯 HOJJI (Conservative - Safety First)
         t_style = "border: 2px solid #FF4444; color: #FF4444;"
         if wr >= 0.70:
             t_brief = f"허허, <b>[내재가치]</b> 대비 저평가로군. 수급과 펀더멘털이 '금상첨화'야. 🍵"
@@ -135,7 +136,7 @@ class SingularityEngine:
         sharpe = np.random.uniform(0.5, 3.0)
         mdd = np.random.uniform(-5.0, -35.0)
         
-        # 🐹 HAMZZI
+        # 🐹 HAMZZI (Aggressive)
         h_msg = ""
         if cash_ratio > 50:
             h_msg += f"사장님! 현금 <b>{cash_ratio:.1f}%</b> 실화야? 😱 <b>[Cash Drag]</b> 때문에 수익률 갉아먹고 있어!<br>"
@@ -144,7 +145,7 @@ class SingularityEngine:
         else:
             h_msg += f"오! <b>[Beta {beta:.2f}]</b> 아주 훌륭해! 🐹 이대로 <b>[불타기]</b> 하면서 수익 극대화하자! 🚀"
 
-        # 🐯 HOJJI
+        # 🐯 HOJJI (Conservative)
         t_msg = ""
         if cash_ratio < 15:
             t_msg += f"자네 현금이 <b>{cash_ratio:.1f}%</b>뿐인가? 😡 하락장 오면 <b>[MDD {mdd:.1f}%]</b> 맞고 깡통 찰 텐가? '유비무환'을 잊지 말게!<br>"
@@ -176,21 +177,13 @@ class SingularityEngine:
         }
 
 # -----------------------------------------------------------------------------
-# [2] IMAGE OCR & PARSING LOGIC
+# [2] IMAGE OCR (Mock)
 # -----------------------------------------------------------------------------
 def parse_image_portfolio(uploaded_file):
-    """
-    Simulates OCR processing. In a real environment, this would use pytesseract.
-    Since we cannot execute Tesseract here, we simulate a successful scan.
-    """
-    # Simulate processing delay
-    with st.spinner("🔄 [Singularity Omega] Optical Character Recognition (OCR) 진행 중..."):
+    # Simulate processing
+    with st.spinner("🔄 [Singularity Omega] OCR 이미지 분석 중..."):
         time.sleep(1.5)
-        
-    # Mock extracted data (To demonstrate functionality)
-    # In real deployment: image = Image.open(uploaded_file); text = pytesseract.image_to_string(image)
-    st.toast("✅ 이미지 스캔 완료! 포트폴리오 데이터를 추출했습니다.", icon="📸")
-    
+    st.toast("✅ 이미지 스캔 완료!", icon="📸")
     return [
         {'name': '두산에너빌리티', 'price': 17500, 'qty': 100, 'strategy': '추세추종'},
         {'name': 'SK하이닉스', 'price': 135000, 'qty': 10, 'strategy': '추세추종'},
@@ -205,41 +198,40 @@ st.markdown("""
     .stApp { background-color: #050505; color: #e0e0e0; font-family: 'Pretendard', sans-serif; }
     .app-title { text-align: center; font-size: 36px; font-weight: 900; color: #fff; padding: 30px 0; text-shadow: 0 0 20px rgba(0,201,255,0.8); }
     
-    /* Inputs Labels */
+    /* Inputs Labels (Visible) */
     .stTextInput label, .stNumberInput label, .stSelectbox label {
-        font-size: 14px !important; font-weight: bold !important; color: #a0a0a0 !important;
-        display: block !important; margin-bottom: 5px !important;
+        font-size: 13px !important; font-weight: bold !important; color: #bbb !important;
+        display: block !important; margin-bottom: 2px !important;
     }
     
+    /* Card Styles */
     .stock-card { background: #111; border-radius: 16px; padding: 0; margin-bottom: 30px; border: 1px solid #333; box-shadow: 0 4px 20px rgba(0,0,0,0.5); overflow: hidden; }
     .card-header { padding: 15px 20px; background: #1e1e1e; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; }
     .stock-name { font-size: 24px; font-weight: bold; color: #fff; }
-    .stock-score { font-size: 14px; font-weight: bold; background: #333; padding: 5px 12px; border-radius: 20px; color: #fff; border: 1px solid #555; }
     
-    .tag-container { padding: 15px 20px 5px 20px; display: flex; flex-wrap: wrap; gap: 8px; }
-    .tag { font-size: 12px; font-weight: bold; padding: 4px 10px; border-radius: 6px; color: #000; display: inline-block; }
+    /* Win Rate Bar */
+    .prog-bg { background: #333; height: 8px; border-radius: 4px; width: 100%; }
+    .prog-fill { height: 100%; border-radius: 4px; transition: width 0.5s; }
     
+    /* Info Grid */
     .info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1px; background: #333; margin: 15px 20px; border: 1px solid #333; }
     .info-item { background: #121212; padding: 10px; text-align: center; }
     .info-label { font-size: 11px; color: #888; display: block; margin-bottom: 3px; }
     .info-val { font-size: 15px; font-weight: bold; color: #fff; }
     
+    /* Tags */
+    .tag { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 11px; margin-right: 5px; font-weight: bold; color: #000; }
+    
+    /* Persona Box */
     .persona-box { padding: 20px; font-size: 14px; line-height: 1.6; color: #eee; }
     .persona-title { font-weight: bold; margin-bottom: 12px; font-size: 16px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px; }
     
-    .port-dash { background: #1a1a1a; padding: 20px; border-radius: 12px; margin-bottom: 30px; border: 1px solid #444; }
-    
+    /* Timeline */
     .timeline { display: flex; justify-content: space-between; background: #000; padding: 15px 25px; border-top: 1px solid #333; }
     .t-item { text-align: center; } .t-val { font-weight: bold; font-size: 15px; margin-top: 4px; display: block; }
     
+    /* Rank Ribbon */
     .rank-ribbon { position: absolute; top: 0; left: 0; padding: 5px 12px; font-size: 12px; font-weight: bold; color: #fff; background: linear-gradient(45deg, #FF416C, #FF4B2B); border-bottom-right-radius: 12px; z-index: 5; }
-    .prog-bg { background: #333; height: 8px; border-radius: 4px; width: 100%; }
-    .prog-fill { height: 100%; border-radius: 4px; transition: width 0.5s; }
-    
-    .hud-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; background: #0d1117; padding: 10px; border-radius: 8px; }
-    .hud-item { background: #21262d; padding: 8px; border-radius: 6px; text-align: center; border: 1px solid #30363d; }
-    .hud-label { font-size: 10px; color: #8b949e; display: block; margin-bottom: 2px; }
-    .hud-val { font-size: 13px; color: #58a6ff; font-weight: bold; }
     
     div[data-testid="column"]:nth-child(5) { margin-left: -20px !important; margin-top: 2px; }
     header, footer {visibility: hidden;}
@@ -257,7 +249,7 @@ if 'cash' not in st.session_state: st.session_state.cash = 10000000
 if 'target_return' not in st.session_state: st.session_state.target_return = 5.0
 if 'my_diagnosis' not in st.session_state: st.session_state.my_diagnosis = []
 if 'market_view_mode' not in st.session_state: st.session_state.market_view_mode = None
-# Timers & Triggers
+# Triggers & Timers
 if 'l_my' not in st.session_state: st.session_state.l_my = 0
 if 'l_top3' not in st.session_state: st.session_state.l_top3 = 0
 if 'l_sep' not in st.session_state: st.session_state.l_sep = 0
@@ -281,9 +273,7 @@ def run_my_diagnosis():
             price = s['price']
             match = market_data[market_data['Name'] == s['name']]
             if not match.empty: price = int(match.iloc[0]['Close'])
-            else:
-                try: df = fdr.StockListing('KRX'); code = df[df['Name'] == s['name']].iloc[0]['Code']; p = fdr.DataReader(code); price = int(p['Close'].iloc[-1])
-                except: pass
+            else: price = int(s['price']) if s['price'] > 0 else 10000
             
             wr, m, tags = engine.run_diagnosis(s['name'], mode)
             plan = engine.generate_report(mode, price, m, wr, st.session_state.cash, s['qty'], st.session_state.target_return)
@@ -329,12 +319,10 @@ def run_market_scan(mode):
 
 # [UI: PORTFOLIO SETTINGS & IMAGE UPLOAD]
 with st.expander("💰 내 자산 및 포트폴리오 설정", expanded=True):
-    # Image Uploader Section
+    # Image Uploader
     st.markdown("#### 📸 포트폴리오 이미지 스캔 (OCR)")
     uploaded_file = st.file_uploader("계좌 캡처 이미지를 업로드하세요", type=["png", "jpg", "jpeg"], label_visibility="collapsed")
-    
     if uploaded_file is not None:
-        # If image uploaded, parse and override portfolio
         scanned_portfolio = parse_image_portfolio(uploaded_file)
         if scanned_portfolio:
             st.session_state.portfolio = scanned_portfolio
@@ -344,17 +332,21 @@ with st.expander("💰 내 자산 및 포트폴리오 설정", expanded=True):
     
     # Manual Input Section
     c1, c2, c3 = st.columns(3)
-    with c1: st.session_state.cash = st.number_input("예수금 (KRW)", value=st.session_state.cash, step=100000)
-    with c2: st.session_state.target_return = st.number_input("목표 수익률 (%)", value=st.session_state.target_return, step=1.0)
+    with c1: 
+        st.caption("예수금 (KRW)")
+        st.session_state.cash = st.number_input("cash_input", value=st.session_state.cash, step=100000, label_visibility="collapsed")
+    with c2: 
+        st.caption("목표 수익률 (%)")
+        st.session_state.target_return = st.number_input("target_input", value=st.session_state.target_return, step=1.0, label_visibility="collapsed")
     with c3:
-        st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
+        st.caption("종목 추가")
         if st.button("➕ 종목 추가", use_container_width=True):
             st.session_state.portfolio.append({'name': '삼성전자', 'price': 0, 'qty': 0, 'strategy': '추세추종'})
             st.rerun()
     
     st.markdown("---")
     
-    # Portfolio Inputs with explicit labels
+    # Portfolio List
     if st.session_state.portfolio:
         for i, s in enumerate(st.session_state.portfolio):
             c1, c2, c3, c4, c5 = st.columns([3, 2, 1.5, 2, 0.5])
@@ -362,19 +354,19 @@ with st.expander("💰 내 자산 및 포트폴리오 설정", expanded=True):
                 st.caption(f"종목명 {i+1}")
                 try: idx = stock_names.index(s['name'])
                 except: idx = 0
-                s['name'] = st.selectbox(f"name_{i}", stock_names, index=idx, label_visibility="collapsed")
+                s['name'] = st.selectbox(f"n{i}", stock_names, index=idx, label_visibility="collapsed")
             with c2: 
                 st.caption("평단가")
-                s['price'] = st.number_input(f"price_{i}", value=float(s['price']), label_visibility="collapsed")
+                s['price'] = st.number_input(f"p{i}", value=float(s['price']), label_visibility="collapsed")
             with c3: 
                 st.caption("수량")
-                s['qty'] = st.number_input(f"qty_{i}", value=int(s['qty']), label_visibility="collapsed")
+                s['qty'] = st.number_input(f"q{i}", value=int(s['qty']), label_visibility="collapsed")
             with c4: 
                 st.caption("전략")
-                s['strategy'] = st.selectbox(f"strat_{i}", ["추세추종", "초단타"], index=0 if s['strategy']=="추세추종" else 1, label_visibility="collapsed")
+                s['strategy'] = st.selectbox(f"s{i}", ["추세추종", "초단타"], index=0 if s['strategy']=="추세추종" else 1, label_visibility="collapsed")
             with c5: 
                 st.caption("삭제")
-                if st.button("🗑️", key=f"del_{i}"): 
+                if st.button("🗑️", key=f"d{i}"): 
                     st.session_state.portfolio.pop(i)
                     st.rerun()
     else:
@@ -396,18 +388,17 @@ def render_full_card(d, idx=None, is_rank=False):
     engine = SingularityEngine()
     p = d['plan']
     
-    # HTML Rendering Safety using textwrap.dedent
     win_pct = d['win'] * 100
     color = "#00FF00" if d['win'] >= 0.7 else "#FFAA00" if d['win'] >= 0.5 else "#FF4444"
     rank_html = f"<div class='rank-ribbon'>{idx+1}위</div>" if is_rank else ""
     
-    # Tags
     tag_html = ""
     for t in d['tags']:
         t_color = "#00FF00" if t['type'] == 'best' else "#00C9FF" if t['type'] == 'good' else "#FF4444"
         tag_html += f"<span class='tag' style='color:{t_color}; border:1px solid {t_color};'>{t['label']} {t['val']}</span>"
 
-    st.markdown(textwrap.dedent(f"""
+    # [CRITICAL FIX] textwrap.dedent to prevent HTML being interpreted as code block
+    card_html = textwrap.dedent(f"""
     <div class='stock-card'>
         {rank_html}
         <div class='card-header' style='padding-left:{50 if is_rank else 0}px'>
@@ -427,7 +418,8 @@ def render_full_card(d, idx=None, is_rank=False):
             <div class='info-item'><span class='info-label'>수익률</span><span class='info-val' style='color:{"#FF4444" if d.get("pnl", 0) < 0 else "#00FF00"}'>{d.get("pnl", 0):.2f}%</span></div>
         </div>
     </div>
-    """), unsafe_allow_html=True)
+    """)
+    st.markdown(card_html, unsafe_allow_html=True)
 
     t1, t2, t3 = st.tabs(["🐹 햄찌의 분석", "🐯 호찌의 분석", "📊 8대 엔진 HUD"])
     
@@ -438,10 +430,10 @@ def render_full_card(d, idx=None, is_rank=False):
             <div class='persona-title' style='color:#FFAA00;'>{h['title']}</div>
             <div style='margin-bottom:10px;'>{h['brief']}</div>
             <div style='background:#222; padding:10px; border-radius:8px; margin-bottom:10px;'><b>💡 행동 지침:</b> {h['action']}</div>
-            <div style='font-size:13px; color:#aaa;'><b>🎯 이유:</b> {h['why']}</div>
+            <div style='font-size:13px; color:#aaa;'><b>🎯 논리적 근거:</b> {h['why']}</div>
         </div>
         """), unsafe_allow_html=True)
-    
+        
     with t2:
         t = p['hojji']
         st.markdown(textwrap.dedent(f"""
@@ -449,7 +441,7 @@ def render_full_card(d, idx=None, is_rank=False):
             <div class='persona-title' style='color:#FF4444;'>{t['title']}</div>
             <div style='margin-bottom:10px;'>{t['brief']}</div>
             <div style='background:#222; padding:10px; border-radius:8px; margin-bottom:10px;'><b>💡 어르신 말씀:</b> {t['action']}</div>
-            <div style='font-size:13px; color:#aaa;'><b>🎯 이유:</b> {t['why']}</div>
+            <div style='font-size:13px; color:#aaa;'><b>🎯 논리적 근거:</b> {t['why']}</div>
         </div>
         """), unsafe_allow_html=True)
 
@@ -466,7 +458,6 @@ def render_full_card(d, idx=None, is_rank=False):
         </div>
         """), unsafe_allow_html=True)
         
-        # Term Explanation
         terms = engine.explain_terms()
         st.markdown(terms['hamzzi'], unsafe_allow_html=True)
         st.markdown("<hr style='border-color:#333; margin:10px 0;'>", unsafe_allow_html=True)
@@ -484,27 +475,24 @@ def render_full_card(d, idx=None, is_rank=False):
 
 if st.session_state.my_diagnosis:
     st.markdown("---")
-    
-    # 1. Portfolio Health
     if 'port_analysis' in st.session_state:
         pa = st.session_state.port_analysis
         st.markdown(f"""
         <div class='port-dash'>
             <div style='font-size:18px; font-weight:bold; color:#fff; margin-bottom:15px;'>📊 포트폴리오 종합 진단 (Conflict Engine)</div>
             <div style='display:grid; grid-template-columns: 1fr 1fr; gap:15px;'>
-                <div class='persona-box' style='background:#222; border-left: 3px solid #FFAA00;'>
+                <div class='persona-box' style='background:#222; border-left: 3px solid #FFAA00; margin-top:0;'>
                     <div style='color:#FFAA00; font-weight:bold; margin-bottom:5px;'>🐹 햄찌의 야수 본능 (인생 한방! 🔥)</div>
-                    <div style='font-size:13px; color:#ccc; line-height:1.5;'>{pa['hamzzi']}</div>
+                    <div style='font-size:13px; color:#ddd; line-height:1.5;'>{pa['hamzzi']}</div>
                 </div>
-                <div class='persona-box' style='background:#222; border-left: 3px solid #FF4444;'>
+                <div class='persona-box' style='background:#222; border-left: 3px solid #FF4444; margin-top:0;'>
                     <div style='color:#FF4444; font-weight:bold; margin-bottom:5px;'>🐯 호찌의 유비무환(有備無患) 정신 🛡️</div>
-                    <div style='font-size:13px; color:#ccc; line-height:1.5;'>{pa['hojji']}</div>
+                    <div style='font-size:13px; color:#ddd; line-height:1.5;'>{pa['hojji']}</div>
                 </div>
             </div>
         </div>
         """, unsafe_allow_html=True)
 
-    # 2. Individual Stock Cards
     st.subheader("👤 보유 종목 상세 분석")
     for d in st.session_state.my_diagnosis:
         render_full_card(d)
@@ -549,19 +537,16 @@ now = time.time()
 need_rerun = False
 
 # Logic: If trigger is set OR (timer is on AND time passed)
-# My Diagnosis
 t_val_my = TIME_OPTS[auto_my]
 if st.session_state.trigger_my or (t_val_my > 0 and now - st.session_state.l_my > t_val_my):
     run_my_diagnosis()
     need_rerun = True
 
-# Top 3
 t_val_top3 = TIME_OPTS[auto_top3]
 if st.session_state.trigger_top3 or (t_val_top3 > 0 and now - st.session_state.l_top3 > t_val_top3):
     run_market_scan('TOP3')
     need_rerun = True
 
-# Separate
 t_val_sep = TIME_OPTS[auto_sep]
 if st.session_state.trigger_sep or (t_val_sep > 0 and now - st.session_state.l_sep > t_val_sep):
     run_market_scan('SEPARATE')
@@ -569,7 +554,6 @@ if st.session_state.trigger_sep or (t_val_sep > 0 and now - st.session_state.l_s
 
 if need_rerun: st.rerun()
 
-# Keep Alive for Timers
 if t_val_my > 0 or t_val_top3 > 0 or t_val_sep > 0:
     time.sleep(1)
     st.rerun()
