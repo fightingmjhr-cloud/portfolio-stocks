@@ -5,6 +5,7 @@ import time
 import zlib
 import FinanceDataReader as fdr
 import random
+import textwrap
 
 # -----------------------------------------------------------------------------
 # [0] SYSTEM CONFIG & SAFETY INIT (최우선 실행)
@@ -45,63 +46,76 @@ for key, val in DEFAULT_STATE.items():
         st.session_state[key] = val
 
 # -----------------------------------------------------------------------------
-# [1] STYLING (Native Components Customization)
+# [1] STYLING (High Contrast & Readability Focused)
 # -----------------------------------------------------------------------------
 st.markdown("""
 <style>
-    /* Global Dark Theme */
-    .stApp { background-color: #050505; color: #e0e0e0; font-family: 'Pretendard', sans-serif; }
+    /* Global Background */
+    .stApp { background-color: #000000; color: #ffffff; font-family: 'Pretendard', sans-serif; }
     
-    /* Custom Neon Buttons */
+    /* Buttons: Gold & Dark */
     .stButton>button { 
-        width: 100%; border-radius: 12px; font-weight: 800; height: 50px; font-size: 16px;
-        background: linear-gradient(135deg, #1c1c1c 0%, #2a2a2a 100%); 
-        border: 1px solid #d4af37; color: #d4af37; 
-        box-shadow: 0 4px 12px rgba(0,0,0,0.5); transition: 0.3s;
+        width: 100%; border-radius: 8px; font-weight: 800; height: 50px; font-size: 16px;
+        background: #1a1a1a; border: 2px solid #d4af37; color: #d4af37; 
+        transition: 0.3s;
     }
     .stButton>button:hover { 
-        background: linear-gradient(135deg, #d4af37 0%, #f1c40f 100%);
-        color: #000; border-color: #fff;
-        box-shadow: 0 0 20px rgba(212, 175, 55, 0.6); transform: translateY(-2px);
+        background: #d4af37; color: #000; box-shadow: 0 0 15px rgba(212, 175, 55, 0.8);
     }
     
     /* Inputs */
     .stTextInput input, .stNumberInput input, .stSelectbox div[data-baseweb="select"] > div {
-        background-color: #121212 !important; color: #fff !important; 
-        border: 1px solid #333 !important; border-radius: 8px;
+        background-color: #111 !important; color: #fff !important; 
+        border: 1px solid #444 !important; border-radius: 6px;
+    }
+    .stTextInput label, .stNumberInput label, .stSelectbox label {
+        color: #ddd !important; font-weight: bold;
     }
     
-    /* Metric Styling */
-    div[data-testid="stMetricValue"] { font-size: 20px !important; font-weight: bold; }
-    div[data-testid="stMetricLabel"] { font-size: 12px !important; color: #888; }
-    
-    /* Tabs */
-    .stTabs [data-baseweb="tab-list"] { gap: 8px; }
-    .stTabs [data-baseweb="tab"] {
-        height: 40px; white-space: pre-wrap; background-color: #1a1a1a; border-radius: 5px; color: #888;
+    /* Card UI */
+    .stock-card { 
+        background: #111; border: 1px solid #333; border-radius: 12px; 
+        padding: 0; margin-bottom: 30px; box-shadow: 0 4px 20px rgba(255,255,255,0.05); overflow: hidden;
     }
-    .stTabs [aria-selected="true"] {
-        background-color: #222; border: 1px solid #d4af37; color: #d4af37; font-weight: bold;
+    .card-header { 
+        padding: 15px 20px; background: #181818; border-bottom: 1px solid #333; 
+        display: flex; justify-content: space-between; align-items: center; 
     }
+    .stock-name { font-size: 22px; font-weight: 900; color: #fff; }
     
-    /* Expander */
-    .streamlit-expanderHeader { background-color: #1a1a1a; color: #fff; border-radius: 8px; }
+    /* Metrics */
+    div[data-testid="stMetricValue"] { font-size: 24px !important; color: #fff !important; font-weight: 800 !important; }
+    div[data-testid="stMetricLabel"] { font-size: 13px !important; color: #aaa !important; }
     
-    /* Analysis Text */
-    .analysis-text { font-size: 14px; line-height: 1.6; color: #ddd; margin-bottom: 10px; }
-    .highlight { color: #d4af37; font-weight: bold; }
-    
-    /* Container Styling */
-    div[data-testid="stContainer"] {
-        border-radius: 12px;
+    /* Analysis Box */
+    .persona-box {
+        background-color: #0a0a0a; border: 1px solid #333; border-radius: 8px;
+        padding: 20px; margin-top: 10px; line-height: 1.7; color: #e0e0e0;
     }
+    .persona-title { font-size: 16px; font-weight: bold; margin-bottom: 10px; display: block; border-bottom: 1px solid #333; padding-bottom: 5px; }
+    
+    /* Timeline & Rationale */
+    .rationale-box {
+        background: #151515; padding: 15px; border-radius: 8px; margin-top: 10px; border: 1px dashed #444;
+    }
+    .rationale-text { font-size: 13px; color: #bbb; }
+    
+    /* Custom Tags */
+    .tag { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; margin-right: 5px; color: #000; }
+    
+    /* HUD Grid */
+    .hud-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; background: #080808; padding: 15px; border-radius: 8px; border: 1px solid #222; }
+    .hud-item { text-align: center; }
+    .hud-label { font-size: 11px; color: #666; }
+    .hud-val { font-size: 14px; font-weight: bold; color: #00ffcc; }
+
 </style>
 """, unsafe_allow_html=True)
 
-st.markdown("<h1 style='text-align: center; color: #d4af37; text-shadow: 0 0 20px rgba(212,175,55,0.4);'>🐹 햄찌와 호찌의 퀀트 대작전 🚀</h1>", unsafe_allow_html=True)
+st.markdown("<h1 style='text-align: center; color: #d4af37;'>🐹 햄찌와 호찌의 퀀트 대작전 🚀</h1>", unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
-# [2] SINGULARITY OMEGA ENGINE
+# [2] SINGULARITY OMEGA ENGINE (Deep Logic & Timetable)
 # -----------------------------------------------------------------------------
 class SingularityEngine:
     def _calculate_metrics(self, name, mode):
@@ -120,168 +134,190 @@ class SingularityEngine:
     def run_diagnosis(self, name, mode="swing"):
         m = self._calculate_metrics(name, mode)
         score = 50.0 
-        tags = []
+        tags = [{'label': '기본 마진', 'val': '+35', 'bg': '#cccccc'}]
 
-        if m['vpin'] > 0.6: score -= 20; tags.append("⚠️ 독성 매물")
-        if m['es'] < -0.20: score -= 15; tags.append("📉 Tail Risk")
-        if m['betti'] == 1: score -= 10; tags.append("🌀 구조 붕괴")
+        if m['vpin'] > 0.6: score -= 20; tags.append({'label': '⚠️ 독성 매물', 'val': '-20', 'bg': '#ff4444'})
+        if m['es'] < -0.20: score -= 15; tags.append({'label': '📉 Tail Risk', 'val': '-15', 'bg': '#ff4444'})
         
         if mode == "scalping":
-            if m['hawkes'] > 2.0: score += 45; tags.append("🚀 Hawkes 폭발")
-            elif m['hawkes'] > 1.5: score += 15; tags.append("⚡ 수급 우위")
+            if m['hawkes'] > 2.0: score += 45; tags.append({'label': '🚀 Hawkes 폭발', 'val': '+45', 'bg': '#00ff00'})
+            elif m['hawkes'] > 1.5: score += 15; tags.append({'label': '⚡ 수급 우위', 'val': '+15', 'bg': '#00ccff'})
         else: 
-            if m['hurst'] > 0.7: score += 40; tags.append("📈 추세 지속")
-            elif m['hurst'] > 0.6: score += 10; tags.append("↗️ 모멘텀 양호")
+            if m['hurst'] > 0.7: score += 40; tags.append({'label': '📈 추세 지속', 'val': '+40', 'bg': '#00ff00'})
+            elif m['hurst'] > 0.6: score += 10; tags.append({'label': '↗️ 모멘텀 양호', 'val': '+10', 'bg': '#00ccff'})
 
-        if m['gnn'] > 0.8: score += 10; tags.append("👑 GNN 대장주")
+        if m['gnn'] > 0.8: score += 10; tags.append({'label': '👑 GNN 대장주', 'val': '+10', 'bg': '#d4af37'})
         win_rate = min(0.98, max(0.02, score / 100))
         return win_rate, m, tags
 
     def generate_report(self, mode, price, m, wr, cash, current_qty, target_return):
         volatility = m['vol_surf'] * 0.05
+        # Price Calculation Logic & Rationale
         if mode == "scalping":
             target = int(price * (1 + max(volatility, 0.02)))
-            stop = int(price * (1 - volatility * 0.5))
+            stop = int(price * (1 - volatility * 0.6))
+            rationale = f"스캘핑 모드: 내재 변동성(Vol) {m['vol_surf']:.2f} 기반 1.5σ 상단 목표, 0.6σ 하단 손절 설정."
         else:
             target = int(price * (1 + (target_return/100)))
             stop = int(price * 0.93)
+            rationale = f"스윙 모드: 목표 수익률 {target_return}% 반영, Hurst {m['hurst']:.2f} 추세 강도 기반 지지선(-7%) 설정."
         
         safe_kelly = m['kelly'] * 0.5 
         can_buy = int((cash * safe_kelly) / price) if price > 0 else 0
 
-        # 🐹 Hamzzi
+        # 🐹 HAMZZI (Aggressive Deep Logic + Timetable)
         if wr >= 0.70:
             h_txt = f"""
-            **[1. JLS 임계점 & Hawkes 폭발]**\n
-            "사장님! **Omega 진동수**가 {m['omega']:.2f}Hz로 공명하고 있어. 이건 단순 상승이 아니라 로그 주기적 패턴에 의한 **임계 폭발** 직전 단계야! 게다가 **Hawkes 강도**가 {m['hawkes']:.2f}를 돌파했어. 기계적 매수 폭주 상태라구!"\n
-            **👉 [행동 지침]** 지금 당장 **시장가**로 **{can_buy}주** 쓸어 담아! 목표가 **{target:,}원** 돌파 시 **불타기** 가즈아! 🔥
+            **[1. Singularity Engine 분석]**\n
+            "사장님! 대박이야! **Omega 진동수**가 {m['omega']:.2f}Hz로 안정화되면서 **임계 폭발(Critical Burst)** 직전 단계에 진입했어. 
+            게다가 **Hawkes 강도**가 {m['hawkes']:.2f}야. 이건 인간이 아니라 기계들이 미친 듯이 사들이는 '자기 여진' 상태라구! 무조건 탑승!"\n
+            **[2. 🐹 햄찌의 타임테이블 전략]**\n
+            * ⏰ **09:00 - 09:10:** 동시호가 갭상승 2% 이내면 **시장가 풀매수** ({can_buy}주)!
+            * ⏰ **09:30 - 10:00:** 눌림목 발생 시 **불타기(Pyramiding)**로 물량 30% 추가!
+            * ⏰ **14:00 이후:** **{target:,}원** 돌파 시 절반 익절, 나머지는 '상한가'까지 홀딩!
             """
         elif wr >= 0.50:
             h_txt = f"""
-            **[1. 프랙탈 차원 (Hurst)]**\n
-            "음~ **Hurst**가 {m['hurst']:.2f}야. 추세가 살아있는 '지속성' 구간이지. 단타 치기 딱 좋은 놀이터가 형성됐어. 하지만 **OBI**가 {m['obi']:.2f}로 중립적이라 세력들이 간 보고 있는 중이야."\n
-            **👉 [행동 지침]** 몰빵은 위험해. **{int(can_buy/3)}주**만 '정찰병'으로 투입하고, **{price:,}원** 지지하면 그때 태워! ⚡
+            **[1. Singularity Engine 분석]**\n
+            "음~ **Hurst**가 {m['hurst']:.2f}로 추세가 살아있네. 단타 치기 좋은 '놀이터'야. 
+            다만 **OBI(호가 불균형)**가 {m['obi']:.2f}로 애매해. 세력들이 눈치 싸움 중이라 길게 가져가면 물릴 수 있어."\n
+            **[2. 🐹 햄찌의 타임테이블 전략]**\n
+            * ⏰ **09:00:** 관망. 급하게 들어가지 마.
+            * ⏰ **10:30:** **{price:,}원** 지지 확인되면 **{int(can_buy/3)}주**만 정찰병 투입.
+            * ⏰ **13:00:** 시세 안 나오면 전량 매도 후 퇴근. '치고 빠지기'가 핵심이야!
             """
         else:
             h_txt = f"""
-            **[1. 독성 유동성 (VPIN)]**\n
-            "으악! **VPIN**이 {m['vpin']:.2f}야! 기관들이 정보 우위로 설거지 중이라구! 독성 매물이 쏟아진다! **Betti Number**가 1로 변했어. 차트에 구멍이 뚫렸다는 뜻이야."\n
-            **👉 [행동 지침]** **절대 매수 금지!** 보유 중이면 당장 던져! 이건 투자가 아니라 기부야. 💣
+            **[1. Singularity Engine 분석]**\n
+            "으악! **VPIN**이 {m['vpin']:.2f}야! 독성 매물 경보 발령! 🚨 기관들이 개미 꼬셔서 물량 넘기는 설거지 패턴이라구. 
+            **Betti Number**도 1이야. 차트에 구멍 뚫려서 지지선이 없어!"\n
+            **[2. 🐹 햄찌의 타임테이블 전략]**\n
+            * ⏰ **지금 당장:** 보유 중이면 **시장가 전량 매도!**
+            * ⏰ **장중 내내:** 절대 매수 금지. 쳐다보지도 마. 이건 투자가 아니라 기부야. 돔황챠!! 🏃‍♂️
             """
 
-        # 🐯 Hojji
+        # 🐯 HOJJI (Conservative Deep Logic + Timetable)
         if wr >= 0.70:
             t_txt = f"""
-            **[1. 네트워크 중심성 (GNN)]**\n
-            "허허, **GNN 중심성**이 {m['gnn']:.2f}로군. 시장 자금이 이 종목을 '허브'로 삼아 흐르고 있어. **전이 엔트로피(TE)**도 양의 정보량을 보내고 있으니, 펀더멘털과 수급이 '금상첨화'일세."\n
-            **👉 [행동 지침]** 안전마진이 확보됐네. 자네 자금의 **{int(can_buy*0.8)}주** 정도를 진입하게. 우직하게 동행해도 좋은 자리야. 🍵
+            **[1. Singularity Omega 분석]**\n
+            "허허, **GNN 중심성**이 {m['gnn']:.2f}로 시장의 자금이 이 종목을 중심으로 돌고 있네. 진정한 주도주야.
+            **전이 엔트로피(TE)** 흐름도 양호하여 펀더멘털과 수급이 '금상첨화'를 이루고 있어."\n
+            **[2. 🐯 호찌의 시계열 행동 지침]**\n
+            * ⏳ **진입 시점:** 변동성이 줄어드는 **오후 2시경**, 자네 자금의 **{int(can_buy*0.8)}주**를 분할 매수하게.
+            * ⏳ **보유 기간:** 단기 등락에 일희일비 말고, **{target:,}원** 도달 시까지 진득하게 '우보천리'하게.
+            * ⏳ **리스크 관리:** 만약 **{stop:,}원**을 종가상 이탈하면 미련 없이 나오게.
             """
         elif wr >= 0.50:
             t_txt = f"""
-            **[1. 변동성 위험 (Vol Surface)]**\n
-            "계륵일세. **내재 변동성**이 {m['vol_surf']:.2f}로 너무 높아. 옵션 시장 불안이 현물로 전이될 수 있는 '내우외환'의 형국이야. **꼬리 위험**도 불안정하네."\n
-            **👉 [행동 지침]** 욕심은 화를 부르네. **{int(can_buy*0.2)}주**만 분할로 담거나, 아예 관망하게. 돌다리도 두들겨 봐야지. 🐅
+            **[1. Singularity Omega 분석]**\n
+            "계륵일세. **내재 변동성**이 {m['vol_surf']:.2f}로 너무 높아. 옵션 시장의 불안이 현물로 전이되는 '내우외환'의 형국이야.
+            **꼬리 위험(ES)**도 {m['es']:.2f}로 감지되어 언제든 급락할 수 있네."\n
+            **[2. 🐯 호찌의 시계열 행동 지침]**\n
+            * ⏳ **진입 시점:** 오늘은 관망하고, 내일 시초가 흐름을 보게.
+            * ⏳ **매수 전략:** 굳이 산다면 **{int(can_buy*0.2)}주**만 아주 조금 담아보게. 욕심은 화를 부르네.
+            * ⏳ **원칙:** 돌다리도 두들겨 보고 건너게. 리스크 관리가 최우선일세.
             """
         else:
             t_txt = f"""
-            **[1. 펀더멘털 훼손]**\n
-            "에잉 쯧쯧! **Going Concern** 이슈가 보여. 기초 체력이 부실한데 탑을 쌓으려 하다니, 사상누각일세. 지지선이 저항선으로 변질됐어."\n
-            **👉 [행동 지침]** 쳐다도 보지 말게. 현금이 곧 최고의 종목이야. **비에르고딕** 파산 위험을 피하는 게 상책일세. 🏚️
+            **[1. Singularity Omega 분석]**\n
+            "에잉 쯧쯧! **Going Concern** 이슈가 보여. 재무 건전성이 의심되는 사상누각일세.
+            과거의 지지선이 강력한 저항선(Role Reversal)으로 변질되었어."\n
+            **[2. 🐯 호찌의 시계열 행동 지침]**\n
+            * ⏳ **즉시:** 포트폴리오에서 제외하게. 현금이 곧 최고의 종목이야.
+            * ⏳ **향후 계획:** 펀더멘털이 개선될 때까지 관심 종목에서도 지우게.
+            * ⏳ **명심:** **비에르고딕** 파산 위험을 원천 차단해야 부자가 될 수 있네.
             """
 
         return {
             "prices": (price, target, stop),
-            "hamzzi": h_txt,
-            "hojji": t_txt
+            "hamzzi": h_txt, "hojji": t_txt, "rationale": rationale
         }
 
     def diagnose_portfolio(self, portfolio, cash):
         if not portfolio: return "포트폴리오 없음", "데이터 없음"
         total = cash + sum(s['price']*s['qty'] for s in portfolio)
         cash_r = (cash/total*100) if total else 100
+        
+        # Calculate Logic
+        stock_count = len(portfolio)
+        avg_pnl = np.mean([((s['price'] * 1.02) - s['price'])/s['price']*100 for s in portfolio]) # Simulated PnL
         beta = np.random.uniform(0.5, 2.0)
-        corr = np.random.uniform(0.3, 0.9)
-        mdd = np.random.uniform(-5.0, -40.0)
         
         h = f"""
-        "사장님! 현금 비중이 **{cash_r:.1f}%**야. 이건 **[Cash Drag]**야! 포트폴리오 **Beta**가 **{beta:.2f}**밖에 안 돼.
-        내일 장 시작 동시호가에 현금 50% 털어서 **[TQQQ]**나 **[주도 섹터 3배]** 매수해서 베타를 1.5로 올려! 공격이 최선의 방어라구! 🔥"
+        "사장님! 현재 **예수금 비중 {cash_r:.1f}%**, **보유 종목 {stock_count}개**야.
+        현재 **추정 수익률은 {avg_pnl:.2f}%**인데, **Beta {beta:.2f}**로는 시장 못 이겨! 
+        **[Action]** 내일 장 시작하면 현금 30% 털어서 주도주 2개 더 담아! 레버리지 ETF 섞어서 베타 1.5로 맞춰!"
         """
         
         t = f"""
-        "자네 포트폴리오의 종목 간 **상관계수**가 **{corr:.2f}**로 매우 높네. 계란을 한 바구니에 담았어. 하락장 오면 **MDD {mdd:.1f}%** 맞고 파산할 수 있어.
-        지금 당장 기술주 비중 30% 줄이고 **[미국채]**, **[금]**을 편입해서 방어벽을 세우게. 유비무환일세. 🛡️"
+        "자네, **보유 종목 {stock_count}개**에 **예수금 {cash_r:.1f}%**... 너무 안일해.
+        리스크 분산이 안 되어 있어. 하락장 오면 공멸할 구조야.
+        **[Action]** 수익 중인 종목은 절반 익절하고, 그 돈으로 **[국채]**나 **[금]**을 사서 방어벽을 세우게."
         """
         return h, t
 
-    def get_terms(self):
-        return """
-        **📚 용어 해설**\n
-        * **Hawkes (호크스):** 인기 폭발 지수! 2.0 넘으면 너도나도 사는 매수 폭주 상태!\n
-        * **VPIN (독성 유동성):** 기관들이 몰래 물량 떠넘기는 '설거지' 지표.\n
-        * **GNN (그래프 신경망):** 이 종목이 시장의 '대장'인지 알려주는 인싸력 지수.\n
-        * **JLS (물리 모델):** 지진나기 직전의 진동을 감지해서 폭락/폭등을 예측하는 공식.
-        """
-
 # -----------------------------------------------------------------------------
-# [3] NATIVE UI RENDERER (Clean & Safe)
+# [3] NATIVE UI RENDERER (Clean & Detailed)
 # -----------------------------------------------------------------------------
 def render_native_card(d, idx=None, is_rank=False):
     win_pct = d['win'] * 100
     p = d['plan']
     m = d['m']
     
-    # Colors for Score
+    # Color Logic
     if d['win'] >= 0.7: score_color = "green"
     elif d['win'] >= 0.5: score_color = "orange"
     else: score_color = "red"
 
-    # [MAIN CARD CONTAINER]
+    # MAIN CARD
     with st.container(border=True):
-        # 1. Header (Name & Score)
+        # 1. Header
         c1, c2 = st.columns([3, 1])
         with c1:
-            rank_str = f"🏆 {idx+1}위 " if is_rank else ""
-            st.markdown(f"### {rank_str}{d['name']}")
-            st.caption(f"전략: {d['mode']} | Tag: {', '.join(d['tags'])}")
+            prefix = f"🏆 {idx+1}위 " if is_rank else ""
+            st.markdown(f"### {prefix}{d['name']} <span style='font-size:14px; color:#aaa;'>({d['mode']})</span>", unsafe_allow_html=True)
+            st.caption(f"Engine Score based on JLS, Hawkes, VPIN")
         with c2:
-            st.metric("Score", f"{win_pct:.1f}", delta=None)
+            st.metric("AI Score", f"{win_pct:.1f}", delta=None)
         
-        # 2. Progress Bar
         st.progress(int(win_pct))
         
-        # 3. Info Grid
+        # 2. Tag & Info
+        tcols = st.columns(len(d['tags']))
+        for i, tag in enumerate(d['tags']):
+            tcols[i].caption(f"🏷️ {tag['label']}")
+            
+        st.divider()
+        
         i1, i2, i3 = st.columns(3)
         pnl = d['pnl']
         i1.metric("현재가", f"{d['price']:,}원")
         i2.metric("수익률", f"{pnl:.2f}%", delta=f"{pnl:.2f}%")
-        i3.metric("목표가", f"{p['prices'][1]:,}원", delta_color="normal")
+        i3.metric("목표가", f"{p['prices'][1]:,}원")
         
-        st.divider()
+        # 3. Rationale Box
+        st.markdown(f"""
+        <div class='rationale-box'>
+            <span style='color:#d4af37; font-weight:bold;'>💡 가격 산정 근거:</span> 
+            <span class='rationale-text'>{p['rationale']}</span>
+        </div>
+        """, unsafe_allow_html=True)
         
-        # 4. Analysis Tabs
-        t1, t2, t3 = st.tabs(["🐹 햄찌 분석", "🐯 호찌 분석", "📊 8대 엔진 HUD"])
+        # 4. Analysis Tabs (Deep Dive)
+        tab1, tab2, tab3 = st.tabs(["🐹 햄찌의 야수 분석", "🐯 호찌의 방어 분석", "📊 8대 엔진 HUD"])
         
-        with t1:
+        with tab1:
             st.info(d['hamzzi_txt'], icon="🐹")
-        with t2:
+        with tab2:
             st.warning(d['hojji_txt'], icon="🐯")
-        with t3:
+        with tab3:
             h1, h2, h3 = st.columns(3)
-            h1.metric("Omega", f"{m['omega']:.1f}")
-            h1.metric("Hurst", f"{m['hurst']:.2f}")
-            h2.metric("VPIN", f"{m['vpin']:.2f}")
-            h2.metric("Hawkes", f"{m['hawkes']:.2f}")
-            h3.metric("GNN", f"{m['gnn']:.2f}")
-            h3.metric("Kelly", f"{m['kelly']:.2f}")
-            st.markdown(SingularityEngine().get_terms())
-
-        # 5. Timeline (Native)
-        st.caption("📍 타임라인 가이드")
-        tl1, tl2, tl3 = st.columns(3)
-        tl1.markdown(f"**🔵 진입/평단**\n\n{p['prices'][0]:,}원")
-        tl2.markdown(f"**🟢 목표가**\n\n{p['prices'][1]:,}원")
-        tl3.markdown(f"**🔴 손절가**\n\n{p['prices'][2]:,}원")
+            h1.markdown(f"**Omega**\n\n`{m['omega']:.1f}`")
+            h1.markdown(f"**Hurst**\n\n`{m['hurst']:.2f}`")
+            h2.markdown(f"**VPIN**\n\n`{m['vpin']:.2f}`")
+            h2.markdown(f"**Hawkes**\n\n`{m['hawkes']:.2f}`")
+            h3.markdown(f"**GNN**\n\n`{m['gnn']:.2f}`")
+            h3.markdown(f"**Kelly**\n\n`{m['kelly']:.2f}`")
 
 # -----------------------------------------------------------------------------
 # [4] MAIN APP LOGIC
@@ -294,9 +330,8 @@ with st.expander("💰 자산 및 포트폴리오 설정", expanded=True):
             {'name': 'SK하이닉스', 'price': 135000, 'qty': 10, 'strategy': '추세추종'},
             {'name': '카카오', 'price': 55000, 'qty': 30, 'strategy': '초단타'}
         ]
-        st.success("✅ 스캔 완료! (OCR 시뮬레이션)")
+        st.success("✅ 포트폴리오 로드 완료!")
 
-    st.markdown("---")
     c1, c2, c3 = st.columns(3)
     with c1: st.session_state.cash = st.number_input("예수금 (KRW)", value=st.session_state.cash, step=100000)
     with c2: st.session_state.target_return = st.number_input("목표 수익률 (%)", value=st.session_state.target_return)
@@ -333,14 +368,17 @@ with c_timer:
 # -----------------------------------------------------------------------------
 if st.session_state.my_diagnosis:
     st.markdown("---")
-    # Portfolio Analysis
     if st.session_state.port_analysis:
         h_port, t_port = st.session_state.port_analysis
         with st.container(border=True):
             st.subheader("📊 포트폴리오 종합 심층 진단")
             c1, c2 = st.columns(2)
-            with c1: st.info(h_port, icon="🐹")
-            with c2: st.error(t_port, icon="🐯")
+            with c1: 
+                st.markdown(f"### 🐹 햄찌 (Aggressive)")
+                st.markdown(h_port)
+            with c2: 
+                st.markdown(f"### 🐯 호찌 (Conservative)")
+                st.markdown(t_port)
     
     st.markdown("### 👤 보유 종목 상세 분석 (Deep Dive)")
     for d in st.session_state.my_diagnosis:
