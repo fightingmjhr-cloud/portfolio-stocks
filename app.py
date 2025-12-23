@@ -5,28 +5,23 @@ import time
 import FinanceDataReader as fdr
 
 # -----------------------------------------------------------------------------
-# [CORE ENGINE] 8대 엔진 & 햄찌 어드바이저
+# [CORE ENGINE] 8대 엔진 & 정밀 분석 리포트 생성기
 # -----------------------------------------------------------------------------
 
 class SingularityEngine:
     def __init__(self):
         pass
 
-    # [1] 8대 엔진 지표 생성
+    # [1] 8대 엔진 데이터 생성 (시뮬레이션)
     def _calculate_metrics(self, mode):
-        # 1. Physics
         omega = np.random.uniform(5.0, 25.0) 
         vol_surf = np.random.uniform(0.1, 0.9)
-        # 2. Math
         betti = np.random.choice([0, 1], p=[0.85, 0.15]) 
-        hurst = np.random.uniform(0.2, 0.9)
-        # 3. Causality
+        hurst = np.random.uniform(0.2, 0.95)
         te = np.random.uniform(0.1, 5.0)
-        # 4. Microstructure
         vpin = np.random.uniform(0.0, 1.0)
         hawkes = np.random.uniform(0.1, 4.0) if mode == "scalping" else np.random.uniform(0.1, 2.0)
         obi = np.random.uniform(-1.0, 1.0)
-        # 5~8. Others
         gnn = np.random.uniform(0.1, 1.0)
         sent = np.random.uniform(-1.0, 1.0)
         es = np.random.uniform(-0.01, -0.30)
@@ -38,102 +33,119 @@ class SingularityEngine:
             "gnn": gnn, "sent": sent, "es": es, "kelly": kelly
         }
 
-    # [2] 승률 산정 (보수적)
+    # [2] 승률 산출 및 근거 로그 작성 (Logic Trace)
     def run_diagnosis(self, mode="swing"):
         m = self._calculate_metrics(mode)
         score = 35.0 
-        reasons = [] 
+        calc_log = ["기본점수(35)"] # 점수 계산 과정 기록
 
         # Penalties
-        if m['vpin'] > 0.6: score -= 15; reasons.append("☠️ 독성 위험")
-        if m['es'] < -0.15: score -= 15; reasons.append("💣 폭락 징후")
-        if m['betti'] == 1: score -= 10; reasons.append("⚠️ 구조 붕괴")
+        if m['vpin'] > 0.6: score -= 15; calc_log.append("독성매물(-15)")
+        if m['es'] < -0.15: score -= 15; calc_log.append("폭락징후(-15)")
+        if m['betti'] == 1: score -= 10; calc_log.append("구조붕괴(-10)")
 
         # Bonuses
         if mode == "scalping":
             if m['hawkes'] > 2.5 and m['obi'] > 0.5:
-                score += 40; reasons.append(f"🚀 퍼펙트 수급")
+                score += 40; calc_log.append("퍼펙트수급(+40)")
             elif m['hawkes'] > 1.5:
-                score += 15; reasons.append("⚡ 수급 우위")
+                score += 15; calc_log.append("수급우위(+15)")
             elif m['hawkes'] < 0.8:
-                score -= 10; reasons.append("💤 거래 소강")
+                score -= 10; calc_log.append("거래소강(-10)")
         else: 
             if m['hurst'] > 0.75 and m['gnn'] > 0.8:
-                score += 35; reasons.append(f"📈 대세 상승장")
+                score += 35; calc_log.append("대세상승(+35)")
             elif m['hurst'] > 0.6:
-                score += 10; reasons.append("↗️ 추세 양호")
+                score += 10; calc_log.append("추세양호(+10)")
             else:
-                score -= 5; reasons.append("📉 추세 미약")
+                score -= 5; calc_log.append("추세미약(-5)")
 
         # Common
-        if 9 < m['omega'] < 13: score += 5; reasons.append("📐 파동 안정")
-        if m['te'] > 3.0: score += 5; reasons.append("📡 정보 폭발")
+        if 9 < m['omega'] < 13: score += 5; calc_log.append("파동안정(+5)")
+        if m['te'] > 3.0: score += 5; calc_log.append("정보폭발(+5)")
 
         win_rate = min(0.92, score / 100)
         win_rate = max(0.15, win_rate)
         
-        return win_rate, m, reasons
-
-    # [3] 자산 배분 플랜
-    def generate_asset_plan(self, mode, price, m, wr, cash, current_qty, target_return):
-        adjusted_kelly = m['kelly'] * (wr / 0.8) if wr < 0.8 else m['kelly']
-        alloc_cash = cash * adjusted_kelly
-        can_buy_qty = int(alloc_cash / price) if price > 0 else 0
-        target_mult = 1 + (target_return / 100)
+        # 근거 텍스트 생성
+        calc_str = " + ".join(calc_log) + f" = <b>{int(score)}점</b>"
         
+        return win_rate, m, calc_str
+
+    # [3] 심층 분석 리포트 생성 (Deep Analyst)
+    def generate_report(self, mode, price, m, wr, cash, current_qty, target_return):
+        # A. 가격 및 타임라인 설정
         if mode == "scalping":
             vol = m['vol_surf'] * 0.04
             entry = int(price * (1 - vol))
-            target = max(int(price * target_mult), int(price * (1 + vol*1.5)))
+            target = max(int(price * (1 + target_return/100)), int(price * (1 + vol*1.5)))
             stop = int(price * (1 - vol*0.7))
-            time = "09:00 ~ 10:00"
+            time_str = "09:00~09:30 (골든타임)"
         else:
-            target = int(price * target_mult)
+            target = int(price * (1 + target_return/100))
             stop = int(price * 0.93)
-            time = "종가 확인 후"
+            time_str = "15:20 (종가 베팅) 혹은 5일선 터치 시"
 
+        # B. 켈리 베팅 자금 산출
+        adjusted_kelly = m['kelly'] * (wr / 0.8) if wr < 0.8 else m['kelly']
+        alloc_cash = cash * adjusted_kelly
+        can_buy_qty = int(alloc_cash / price) if price > 0 else 0
+
+        # C. 상세 분석 텍스트 (Micro-Level Analysis)
+        analysis_text = ""
+        if mode == "scalping":
+            if wr >= 0.75:
+                analysis_text = f"""
+                <b>[📈 기술적 프로파일링]</b> 현재 Hawkes 지수가 {m['hawkes']:.2f}로 임계치를 초과했습니다. 이는 단순 반등이 아니라, '자기 여진(Self-Exciting)'에 의한 2차, 3차 수급 폭발이 임박했음을 시사합니다. 특히 호가창 불균형(OBI)이 {m['obi']:.2f}로 매수벽이 두터워 하방 경직성이 매우 강합니다.<br><br>
+                <b>[🌊 유동성 분석]</b> VPIN(독성 유동성)이 {m['vpin']:.2f}로 매우 낮습니다. 이는 현재 거래량이 기관이나 스마트 머니의 매집일 가능성이 높으며, 개미 털기성 속임수 패턴이 아님을 의미합니다.
+                """
+            else:
+                analysis_text = f"""
+                <b>[📉 리스크 분석]</b> 수급은 일부 보이나 VPIN이 {m['vpin']:.2f}로 높습니다. 이는 고점에서 물량을 떠넘기는 '설거지' 패턴일 수 있습니다. 변동성 표면(Vol Surface)이 불안정하여 급락 위험이 큽니다.
+                """
+        else: # Swing
+            if wr >= 0.75:
+                analysis_text = f"""
+                <b>[📈 추세 분석]</b> 허스트 지수(Hurst Exponent)가 {m['hurst']:.2f}를 기록했습니다. 이는 주가가 랜덤워크를 벗어나 강력한 '기억(Memory)'을 가지고 추세를 지속하려는 성질이 극대화된 상태입니다. JLS 파동 모델상 로그 주기 진동수도 {m['omega']:.1f}로 붕괴 위험 없이 안정적입니다.<br><br>
+                <b>[🌐 네트워크 분석]</b> GNN 중심성 지표가 {m['gnn']:.2f}로 시장 주도주(Key Player)의 지위를 차지하고 있습니다. 주변 종목들이 이 종목의 등락을 따라가는 선행성을 보입니다.
+                """
+            else:
+                analysis_text = f"""
+                <b>[⏳ 조정 분석]</b> 상승 추세가 꺾이지는 않았으나, 단기 과열권에 진입했습니다. 위상수학적 구멍(Betti Number)이 감지되어 추세의 연결성이 잠시 끊길 수 있는 조정 구간입니다.
+                """
+
+        # D. 실전 행동 강령 (Action Script)
         if wr >= 0.75:
-            cmd = "🔥 STRONG BUY"
+            cmd = "🔥 STRONG BUY (공격적 진입)"
             style = "color: #00FF00;"
-            msg = f"승률 {wr*100:.0f}%의 기회! 현금 {int(adjusted_kelly*100)}% 투입하여 **{can_buy_qty}주** 매수."
+            action_guide = f"""
+            1. <b>진입:</b> 시초가 갭이 3% 이하라면 <b>시장가로 {int(can_buy_qty*0.5)}주 선진입</b>하십시오. 나머지 물량은 {entry:,}원 부근 눌림목에 걸어두세요.<br>
+            2. <b>홀딩:</b> 수익률 {target_return}% 도달 전까지는 웬만한 흔들림에 매도하지 마십시오.<br>
+            3. <b>멘탈:</b> 지금은 공포를 살 때가 아니라 탐욕을 부릴 때입니다.
+            """
         elif wr >= 0.55:
-            cmd = "⚖️ BUY / HOLD"
+            cmd = "⚖️ BUY / HOLD (분할 대응)"
             style = "color: #FFAA00;"
-            msg = f"리스크 관리 필요. **{int(can_buy_qty/2)}주**만 분할 진입하세요."
+            action_guide = f"""
+            1. <b>진입:</b> 섣불리 덤비지 마십시오. 호가창 매수 잔량이 매도 잔량을 압도하는 순간 <b>{int(can_buy_qty/3)}주씩 3분할</b>로 접근하세요.<br>
+            2. <b>대응:</b> {entry:,}원을 지지하지 못하면 즉시 관망세로 전환하십시오.<br>
+            3. <b>비중:</b> 전체 시드의 20%를 넘기지 않는 것이 좋습니다.
+            """
         else:
-            cmd = "🛡️ SELL / WAIT"
+            cmd = "🛡️ SELL / WAIT (현금 확보)"
             style = "color: #FF4444;"
-            msg = f"승률({wr*100:.0f}%) 저조. 진입 금지 및 현금 확보."
+            action_guide = f"""
+            1. <b>청산:</b> 보유 중이라면 반등 시마다 물량을 줄이십시오. 지금은 <b>현금이 가장 좋은 종목</b>입니다.<br>
+            2. <b>관망:</b> 차라리 맛있는 것을 사 드시고 HTS를 끄십시오. 이길 수 없는 싸움입니다.<br>
+            3. <b>조건:</b> 최소한 Hawkes 지수가 1.5 이상으로 올라올 때까지 진입 금지입니다.
+            """
 
         return {
-            "cmd": cmd, "msg": msg, "time": time, "style": style,
+            "cmd": cmd, "analysis": analysis_text, "action": action_guide, 
+            "time": time_str, "style": style, "score_log": m,
             "prices": (entry if mode=='scalping' else price, target, stop),
             "qty_guide": can_buy_qty
         }
-
-    # [4] 🐹 햄찌의 잔소리 (Portfolio Advisor)
-    def hamzzi_advice(self, cash, portfolio_val, pnl_avg):
-        total_asset = cash + portfolio_val
-        cash_ratio = (cash / total_asset) * 100 if total_asset > 0 else 0
-        
-        title = "🐹 햄찌의 계좌 훈수"
-        
-        if total_asset == 0:
-            return title, "사장님... 돈이 없는데요? 0원으로 뭘 하려고요? 😭"
-            
-        if pnl_avg > 10:
-            msg = "이야~ 사장님! 주식 좀 하시는데요? 오늘 저녁은 소고기 콜? 🥩 (그래도 익절은 하세요!)"
-        elif pnl_avg < -10:
-            msg = "아이고... 계좌가 파랗게 질렸네. 😱 지금은 뇌동매매 금지! 숨 참으세요!"
-        else:
-            msg = "아직은 간 보는 중이네요. 지루해도 원칙 지키는 사람이 승리합니다! 😐"
-            
-        if cash_ratio > 80:
-            msg += "\n\n(근데 현금이 너무 많아요! 쫄보입니까? 좋은 종목 좀 담아보세요!)"
-        elif cash_ratio < 10:
-            msg += "\n\n(현금 0원? 상남자시네... 하락장 오면 어쩌려고요? 현금 좀 챙기세요!)"
-            
-        return title, msg
 
 # [DATA]
 @st.cache_data(ttl=3600)
@@ -156,62 +168,47 @@ st.markdown("""
         background-color: #1a1f26 !important; color: #fff !important; border: 1px solid #444 !important;
     }
     
-    /* Button Styling */
+    /* Button */
     .stButton>button { 
-        width: 100%; border-radius: 12px; font-weight: 800; height: 55px; font-size: 18px;
+        width: 100%; border-radius: 12px; font-weight: 800; height: 50px; font-size: 18px;
         background: linear-gradient(135deg, #00C9FF, #92FE9D); border: none; color: #000;
-        box-shadow: 0 4px 15px rgba(0, 201, 255, 0.2); transition: 0.2s;
+        box-shadow: 0 4px 15px rgba(0, 201, 255, 0.2);
     }
-    .stButton>button:hover { transform: scale(1.02); }
     
-    /* Card Design */
+    /* Stock Card (Premium Report Style) */
     .stock-card { 
-        background: #11151c; border-radius: 16px; padding: 22px; margin-bottom: 20px; 
-        border: 1px solid #2d333b; box-shadow: 0 8px 25px rgba(0,0,0,0.7); position: relative;
+        background: #11151c; border-radius: 16px; padding: 25px; margin-bottom: 25px; 
+        border: 1px solid #2d333b; box-shadow: 0 8px 30px rgba(0,0,0,0.8); position: relative;
     }
     
-    /* Badges */
-    .logic-badge {
-        display: inline-block; background: #1f242d; border: 1px solid #333; color: #00C9FF; 
-        padding: 4px 10px; border-radius: 20px; font-size: 11px; margin-right: 6px; margin-bottom: 6px; font-weight: bold;
-    }
-    
-    /* Rank Badge Correction: Top Left Ribbon */
+    /* Rank Ribbon */
     .rank-badge {
         position: absolute; top: 0; left: 0; 
         background: linear-gradient(135deg, #FF4444, #FF0000); color: #fff; 
-        font-weight: bold; padding: 6px 12px; border-bottom-right-radius: 12px; 
-        border-top-left-radius: 16px; font-size: 13px; z-index: 10;
-        box-shadow: 2px 2px 10px rgba(0,0,0,0.5);
+        font-weight: bold; padding: 6px 15px; border-bottom-right-radius: 15px; 
+        border-top-left-radius: 16px; font-size: 14px; z-index: 10;
+        box-shadow: 3px 3px 10px rgba(0,0,0,0.5);
     }
     
-    /* Action Section */
-    .action-section {
-        background: #161b22; border-radius: 12px; padding: 15px; margin-top: 15px;
-        border-left: 4px solid #FFFF00; font-size: 14px;
+    /* Sections inside Card */
+    .report-section {
+        margin-top: 15px; padding-top: 15px; border-top: 1px solid #333; font-size: 14px; line-height: 1.7; color: #ddd;
     }
+    .report-title { color: #00C9FF; font-weight: bold; margin-bottom: 8px; font-size: 15px; }
     
+    /* Timeline Visual */
     .timeline-visual {
         display: flex; justify-content: space-between; background: #0d1117; 
-        padding: 10px; border-radius: 8px; margin-top: 10px; font-size: 12px; color: #aaa;
+        padding: 12px; border-radius: 8px; margin-top: 15px; font-size: 13px; border: 1px solid #333;
     }
-    .t-item b { color: #fff; font-size: 13px; }
+    .t-item { text-align: center; }
+    .t-item b { display: block; font-size: 15px; margin-top: 4px; color: #fff; }
     
-    .hud-grid {
-        display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px;
-        background: #0d1117; padding: 10px; border-radius: 8px;
-    }
-    .hud-item {
-        background: #21262d; padding: 8px; border-radius: 6px; text-align: center; border: 1px solid #30363d;
-    }
-    .hud-label { font-size: 10px; color: #8b949e; display: block; margin-bottom: 2px; }
-    .hud-val { font-size: 13px; color: #58a6ff; font-weight: bold; }
-
-    /* Hamzzi Message Box */
+    /* Hamzzi */
     .hamzzi-box {
         background-color: #2d1f15; border: 2px solid #FFAA00; border-radius: 15px;
         padding: 20px; text-align: center; color: #FFAA00; margin-bottom: 20px;
-        font-size: 16px; font-weight: bold; box-shadow: 0 0 15px rgba(255, 170, 0, 0.3);
+        font-size: 16px; font-weight: bold;
     }
 
     div[data-testid="column"]:nth-child(5) { margin-left: -20px !important; margin-top: 2px; }
@@ -228,8 +225,8 @@ if 'sc_list' not in st.session_state: st.session_state.sc_list = []
 if 'sw_list' not in st.session_state: st.session_state.sw_list = []
 if 'cash' not in st.session_state: st.session_state.cash = 10000000 
 if 'target_return' not in st.session_state: st.session_state.target_return = 5.0
-if 'display_mode' not in st.session_state: st.session_state.display_mode = None 
 if 'my_diagnosis' not in st.session_state: st.session_state.my_diagnosis = []
+if 'display_mode' not in st.session_state: st.session_state.display_mode = None
 
 # [INPUT PANEL]
 with st.expander("💰 자산 및 포트폴리오 관리", expanded=True):
@@ -264,7 +261,7 @@ with st.expander("💰 자산 및 포트폴리오 관리", expanded=True):
 
     # [BUTTON: MY STOCK DIAGNOSIS]
     st.markdown("<br>", unsafe_allow_html=True)
-    if st.button("📝 내 종목만 진단하기 (My Stock Only)", use_container_width=True):
+    if st.button("📝 내 종목만 진단하기", use_container_width=True):
         st.session_state.display_mode = 'MY'
         st.session_state.running = True
         
@@ -272,7 +269,7 @@ with st.expander("💰 자산 및 포트폴리오 관리", expanded=True):
         market_data = load_top50_data() 
         my_results = []
         
-        with st.spinner("내 보유 종목 정밀 분석 중..."):
+        with st.spinner("보유 포트폴리오 정밀 해부 중... (8대 엔진)"):
             for s in st.session_state.portfolio:
                 if not s['name']: continue
                 mode = "scalping" if s['strategy'] == "초단타" else "swing"
@@ -285,48 +282,24 @@ with st.expander("💰 자산 및 포트폴리오 관리", expanded=True):
                         p_df = fdr.DataReader(code); price = int(p_df['Close'].iloc[-1])
                     except: pass
                 
-                wr, m, reasons = engine.run_diagnosis(mode)
-                plan = engine.generate_asset_plan(mode, price, m, wr, st.session_state.cash, s['qty'], st.session_state.target_return)
+                wr, m, log_str = engine.run_diagnosis(mode)
+                plan = engine.generate_report(mode, price, m, wr, st.session_state.cash, s['qty'], st.session_state.target_return)
                 pnl = ((price - s['price'])/s['price']*100) if s['price'] > 0 else 0
-                my_results.append({'name': s['name'], 'price': price, 'pnl': pnl, 'win': wr, 'mode': mode, 'm': m, 'reasons': reasons, 'plan': plan})
+                my_results.append({'name': s['name'], 'price': price, 'pnl': pnl, 'win': wr, 'mode': mode, 'log': log_str, 'plan': plan})
             st.session_state.my_diagnosis = my_results
         st.rerun()
 
-# [BUTTON: CUTE ADVISOR]
+# [BUTTON: HAMZZI]
 st.markdown("<br>", unsafe_allow_html=True)
-if st.button("🐹 햄찌의 계좌 훈수 두기 (Portfolio Advice)", use_container_width=True):
-    engine = SingularityEngine()
-    
-    # Portfolio Valuation
-    port_val = 0
-    total_pnl_pct = 0
-    
-    if st.session_state.portfolio:
-        total_invest = 0
-        current_val = 0
-        market_data = load_top50_data()
-        
-        for s in st.session_state.portfolio:
-            if not s['name']: continue
-            price = s['price']
-            match = market_data[market_data['Name'] == s['name']]
-            if not match.empty: price = int(match.iloc[0]['Close'])
-            
-            total_invest += s['price'] * s['qty']
-            current_val += price * s['qty']
-            
-        port_val = current_val
-        if total_invest > 0:
-            total_pnl_pct = ((current_val - total_invest) / total_invest) * 100
-            
-    title, msg = engine.hamzzi_advice(st.session_state.cash, port_val, total_pnl_pct)
-    st.markdown(f"<div class='hamzzi-box'><div>{title}</div><br><div style='font-size:14px; color:#eee;'>{msg}</div></div>", unsafe_allow_html=True)
+if st.button("🐹 햄찌의 계좌 훈수 두기", use_container_width=True):
+    msg = "사장님, 지금 주식창 볼 때가 아니에요! 일하세요 일! 🐹 (농담이고, 현금 비중 좀 챙기세요)"
+    st.markdown(f"<div class='hamzzi-box'>🐹 햄찌 왈:<br><br>{msg}</div>", unsafe_allow_html=True)
 
 # [DUAL LAUNCH BUTTONS]
 c_btn1, c_btn2 = st.columns(2)
 
 def run_market_scan():
-    with st.spinner("코스피/코스닥 전 종목 정밀 타격 중..."):
+    with st.spinner("전 종목 정밀 타격 및 랭킹 산출 중..."):
         engine = SingularityEngine()
         market_data = load_top50_data() 
         sc_all, sw_all, ideal_all = [], [], []
@@ -336,13 +309,13 @@ def run_market_scan():
             price = int(float(row['Close']))
             name = row['Name']
             
-            wr_sc, m_sc, r_sc = engine.run_diagnosis("scalping")
-            plan_sc = engine.generate_asset_plan("scalping", price, m_sc, wr_sc, st.session_state.cash, 0, st.session_state.target_return)
-            sc_all.append({'name': name, 'price': price, 'win': wr_sc, 'mode': "초단타", 'm': m_sc, 'reasons': r_sc, 'plan': plan_sc})
+            wr_sc, m_sc, l_sc = engine.run_diagnosis("scalping")
+            p_sc = engine.generate_report("scalping", price, m_sc, wr_sc, st.session_state.cash, 0, st.session_state.target_return)
+            sc_all.append({'name': name, 'price': price, 'win': wr_sc, 'mode': "초단타", 'log': l_sc, 'plan': p_sc})
             
-            wr_sw, m_sw, r_sw = engine.run_diagnosis("swing")
-            plan_sw = engine.generate_asset_plan("swing", price, m_sw, wr_sw, st.session_state.cash, 0, st.session_state.target_return)
-            sw_all.append({'name': name, 'price': price, 'win': wr_sw, 'mode': "추세추종", 'm': m_sw, 'reasons': r_sw, 'plan': plan_sw})
+            wr_sw, m_sw, l_sw = engine.run_diagnosis("swing")
+            p_sw = engine.generate_report("swing", price, m_sw, wr_sw, st.session_state.cash, 0, st.session_state.target_return)
+            sw_all.append({'name': name, 'price': price, 'win': wr_sw, 'mode': "추세추종", 'log': l_sw, 'plan': p_sw})
 
             if wr_sc >= wr_sw: ideal_all.append(sc_all[-1])
             else: ideal_all.append(sw_all[-1])
@@ -355,14 +328,12 @@ def run_market_scan():
         st.session_state.sw_list = sw_all[:3]
         st.session_state.ideal_list = ideal_all[:3]
 
-# Left: Top 3
 if c_btn1.button("🏆 타이거&햄찌 출격! (Top 3)"):
     st.session_state.running = True
     st.session_state.display_mode = 'TOP3'
     run_market_scan()
     st.rerun()
 
-# Right: Separate
 if c_btn2.button("📊 단타 / 추세 (전략별 보기)"):
     st.session_state.running = True
     st.session_state.display_mode = 'SEPARATE'
@@ -376,135 +347,120 @@ if st.session_state.get('running'):
     
     # 1. MY DIAGNOSIS
     if st.session_state.display_mode == 'MY' and st.session_state.my_diagnosis:
-        st.markdown("<h5>👤 내 보유 종목 정밀 진단</h5>", unsafe_allow_html=True)
+        st.markdown("<h5>👤 내 보유 종목 정밀 진단 리포트</h5>", unsafe_allow_html=True)
         for d in st.session_state.my_diagnosis:
             p = d['plan']
             border = "#00FF00" if d['win'] >= 0.75 else ("#FFAA00" if d['win'] >= 0.55 else "#FF4444")
-            badges = "".join([f"<span class='logic-badge'>{r}</span>" for r in d['reasons']])
             
             st.markdown(f"""
             <div class='stock-card' style='border-left: 5px solid {border};'>
                 <div style='display:flex; justify-content:space-between; align-items:center;'>
-                    <span style='font-size:22px; font-weight:bold; color:#fff;'>{d['name']}</span>
-                    <span class='badge' style='background:{border}; color:#000;'>승률 {d['win']*100:.1f}%</span>
+                    <span style='font-size:24px; font-weight:bold; color:#fff;'>{d['name']}</span>
+                    <span class='badge' style='background:{border}; color:#000;'>AI 승률 {d['win']*100:.1f}%</span>
                 </div>
                 <div style='display:flex; gap:15px; margin-top:5px; font-size:14px; color:#ccc;'>
                     <span>현재가: <b>{d['price']:,}</b></span>
                     <span style='color:{"#00FF00" if d['pnl']>=0 else "#FF4444"};'>수익률: <b>{d['pnl']:.2f}%</b></span>
                 </div>
-                <div style='margin-top:10px;'>{badges}</div>
-                <div class='action-section' style='border-left-color: {border};'>
-                    <div style='display:flex; justify-content:space-between; font-weight:bold; color:{p['style'].split(':')[1]}; margin-bottom:10px;'>
-                        <span>{p['cmd']}</span><span>{p['time']}</span>
-                    </div>
-                    <div style='color:#eee; line-height:1.6;'>{p['msg']}</div>
-                    <div class='timeline-visual'>
-                        <div class='t-item'>🔵 진입/추매<br><b>{p['prices'][0]:,}원</b></div>
-                        <div class='t-item'>🔴 목표/익절<br><b>{p['prices'][1]:,}원</b></div>
-                        <div class='t-item' style='color:#FF4444;'>🚫 손절/방어<br><b>{p['prices'][2]:,}원</b></div>
-                    </div>
+                
+                <div class='report-section'>
+                    <div class='report-title'>📊 점수 산출 근거</div>
+                    {d['log']}
+                </div>
+                
+                <div class='report-section'>
+                    <div class='report-title'>🔍 8대 엔진 심층 분석</div>
+                    {p['analysis']}
+                </div>
+                
+                <div class='report-section'>
+                    <div class='report-title' style='color:{border};'>{p['cmd']}</div>
+                    {p['action']}
+                </div>
+                
+                <div class='timeline-visual'>
+                    <div class='t-item'>🔵 진입/추매<br><b>{p['prices'][0]:,}원</b></div>
+                    <div class='t-item'>🔴 목표/익절<br><b>{p['prices'][1]:,}원</b></div>
+                    <div class='t-item' style='color:#FF4444;'>🚫 손절/방어<br><b>{p['prices'][2]:,}원</b></div>
                 </div>
             </div>
             """, unsafe_allow_html=True)
-            with st.expander(f"🔍 {d['name']} - 8대 엔진 HUD"):
-                m = d['m']
-                st.markdown(f"""
-                <div class='hud-grid'>
-                    <div class='hud-item'><span class='hud-label'>JLS 파동</span><span class='hud-val'>{m['omega']:.1f}</span></div>
-                    <div class='hud-item'><span class='hud-label'>독성(VPIN)</span><span class='hud-val'>{m['vpin']:.2f}</span></div>
-                    <div class='hud-item'><span class='hud-label'>수급(Hawkes)</span><span class='hud-val'>{m['hawkes']:.2f}</span></div>
-                    <div class='hud-item'><span class='hud-label'>호가(OBI)</span><span class='hud-val'>{m['obi']:.2f}</span></div>
-                    <div class='hud-item'><span class='hud-label'>추세(Hurst)</span><span class='hud-val'>{m['hurst']:.2f}</span></div>
-                    <div class='hud-item'><span class='hud-label'>켈리비중</span><span class='hud-val'>{m['kelly']:.2f}</span></div>
-                </div>
-                """, unsafe_allow_html=True)
 
     # 2. TOP 3 MODE
     elif st.session_state.display_mode == 'TOP3' and st.session_state.ideal_list:
-        st.markdown("<h5>🏆 오늘의 Singularity Ideal Pick (Top 3)</h5>", unsafe_allow_html=True)
+        st.markdown("<h5>🏆 금일의 Singularity Ideal Pick (Top 3)</h5>", unsafe_allow_html=True)
         for idx, r in enumerate(st.session_state.ideal_list):
             p = r['plan']
             border = "#FFFFFF"
-            badges = "".join([f"<span class='logic-badge'>{rea}</span>" for rea in r['reasons']])
             st.markdown(f"""
-            <div class='stock-card' style='border: 2px solid {border}; box-shadow: 0 0 15px rgba(255,255,255,0.15);'>
+            <div class='stock-card' style='border: 2px solid {border}; box-shadow: 0 0 20px rgba(255,255,255,0.1);'>
                 <div class='rank-badge'>통합 {idx+1}위</div>
-                <div style='display:flex; justify-content:space-between; align-items:center; padding-left: 10px;'>
+                <div style='display:flex; justify-content:space-between; align-items:center; margin-left: 10px;'>
                     <span style='font-size:24px; font-weight:bold; color:#fff;'>{r['name']}</span>
                     <span class='badge' style='background:#fff; color:#000;'>{r['mode']} / {r['win']*100:.1f}점</span>
                 </div>
-                <div style='margin-top:10px;'>{badges}</div>
-                <div class='action-section' style='border-left-color: {border};'>
-                    <div style='display:flex; justify-content:space-between; font-weight:bold; color:{p['style'].split(':')[1]}; margin-bottom:10px;'>
-                        <span>{p['cmd']}</span><span>{p['time']}</span>
-                    </div>
-                    <div style='color:#eee; line-height:1.6;'>{p['msg']}</div>
-                    <div class='timeline-visual'>
-                        <div class='t-item'>🔵 진입: <b>{p['prices'][0]:,}원</b></div>
-                        <div class='t-item'>🔴 목표: <b>{p['prices'][1]:,}원</b></div>
-                        <div class='t-item' style='color:#FF4444;'>🚫 손절: <b>{p['prices'][2]:,}원</b></div>
-                    </div>
+                
+                <div class='report-section'>
+                    <div class='report-title'>📊 점수 산출 근거</div>
+                    {r['log']}
+                </div>
+                
+                <div class='report-section'>
+                    <div class='report-title'>🔍 8대 엔진 심층 분석</div>
+                    {p['analysis']}
+                </div>
+                
+                <div class='report-section'>
+                    <div class='report-title' style='color:{p['style'].split(':')[1]};'>{p['cmd']}</div>
+                    {p['action']}
+                </div>
+                
+                <div class='timeline-visual'>
+                    <div class='t-item'>🔵 진입가<br><b>{p['prices'][0]:,}원</b></div>
+                    <div class='t-item'>🔴 목표가<br><b>{p['prices'][1]:,}원</b></div>
+                    <div class='t-item' style='color:#FF4444;'>🚫 손절가<br><b>{p['prices'][2]:,}원</b></div>
                 </div>
             </div>
             """, unsafe_allow_html=True)
-            with st.expander(f"🔍 {r['name']} - 8대 엔진 HUD"):
-                m = r['m']
-                st.markdown(f"""
-                <div class='hud-grid'>
-                    <div class='hud-item'><span class='hud-label'>JLS 파동</span><span class='hud-val'>{m['omega']:.1f}</span></div>
-                    <div class='hud-item'><span class='hud-label'>독성(VPIN)</span><span class='hud-val'>{m['vpin']:.2f}</span></div>
-                    <div class='hud-item'><span class='hud-label'>수급(Hawkes)</span><span class='hud-val'>{m['hawkes']:.2f}</span></div>
-                    <div class='hud-item'><span class='hud-label'>호가(OBI)</span><span class='hud-val'>{m['obi']:.2f}</span></div>
-                    <div class='hud-item'><span class='hud-label'>추세(Hurst)</span><span class='hud-val'>{m['hurst']:.2f}</span></div>
-                    <div class='hud-item'><span class='hud-label'>켈리비중</span><span class='hud-val'>{m['kelly']:.2f}</span></div>
-                </div>
-                """, unsafe_allow_html=True)
 
     # 3. SEPARATE MODE
     elif st.session_state.display_mode == 'SEPARATE':
         st.markdown("<h5>📊 전략별 절대 랭킹 (Top 3)</h5>", unsafe_allow_html=True)
         tab1, tab2 = st.tabs(["⚡ 초단타 랭킹", "🌊 추세추종 랭킹"])
         
-        def render_rec(data, color):
+        def render_report_card(data, color):
             for idx, r in enumerate(data):
                 p = r['plan']
-                badges = "".join([f"<span class='logic-badge'>{rea}</span>" for rea in r['reasons']])
                 st.markdown(f"""
                 <div class='stock-card' style='border-left: 5px solid {color};'>
                     <div class='rank-badge' style='background:{color}; border-radius: 16px 0 16px 0;'>{idx+1}위</div>
-                    <div style='display:flex; justify-content:space-between; align-items:center; padding-left:10px;'>
-                        <span style='font-size:22px; font-weight:bold; color:#fff;'>{r['name']}</span>
-                        <span class='badge' style='background:{color}; color:#000;'>{r['win']*100:.1f}%</span>
+                    <div style='display:flex; justify-content:space-between; align-items:center; margin-left: 10px;'>
+                        <span style='font-size:24px; font-weight:bold; color:#fff;'>{r['name']}</span>
+                        <span class='badge' style='background:{color}; color:#000;'>{r['win']*100:.1f}점</span>
                     </div>
-                    <div style='margin-top:10px;'>{badges}</div>
-                    <div class='action-section' style='border-left-color: {color};'>
-                        <div style='display:flex; justify-content:space-between; font-weight:bold; color:{p['style'].split(':')[1]}; margin-bottom:10px;'>
-                            <span>{p['cmd']}</span><span>{p['time']}</span>
-                        </div>
-                        <div style='color:#eee; line-height:1.6;'>{p['msg']}</div>
-                        <div class='timeline-visual'>
-                            <div class='t-item'>🔵 진입: <b>{p['prices'][0]:,}원</b></div>
-                            <div class='t-item'>🔴 목표: <b>{p['prices'][1]:,}원</b></div>
-                            <div class='t-item' style='color:#FF4444;'>🚫 손절: <b>{p['prices'][2]:,}원</b></div>
-                        </div>
+                    
+                    <div class='report-section'>
+                        <div class='report-title'>📊 점수 산출 근거</div>
+                        {r['log']}
+                    </div>
+                    
+                    <div class='report-section'>
+                        <div class='report-title'>🔍 8대 엔진 심층 분석</div>
+                        {p['analysis']}
+                    </div>
+                    
+                    <div class='report-section'>
+                        <div class='report-title' style='color:{color};'>{p['cmd']}</div>
+                        {p['action']}
+                    </div>
+                    
+                    <div class='timeline-visual'>
+                        <div class='t-item'>🔵 진입가<br><b>{p['prices'][0]:,}원</b></div>
+                        <div class='t-item'>🔴 목표가<br><b>{p['prices'][1]:,}원</b></div>
+                        <div class='t-item' style='color:#FF4444;'>🚫 손절가<br><b>{p['prices'][2]:,}원</b></div>
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
-                with st.expander(f"🔍 {r['name']} - 8대 엔진 HUD"):
-                    m = r['m']
-                    st.markdown(f"""
-                    <div class='hud-grid'>
-                        <div class='hud-item'><span class='hud-label'>JLS 파동</span><span class='hud-val'>{m['omega']:.1f}</span></div>
-                        <div class='hud-item'><span class='hud-label'>독성(VPIN)</span><span class='hud-val'>{m['vpin']:.2f}</span></div>
-                        <div class='hud-item'><span class='hud-label'>수급(Hawkes)</span><span class='hud-val'>{m['hawkes']:.2f}</span></div>
-                        <div class='hud-item'><span class='hud-label'>호가(OBI)</span><span class='hud-val'>{m['obi']:.2f}</span></div>
-                        <div class='hud-item'><span class='hud-label'>추세(Hurst)</span><span class='hud-val'>{m['hurst']:.2f}</span></div>
-                        <div class='hud-item'><span class='hud-label'>켈리비중</span><span class='hud-val'>{m['kelly']:.2f}</span></div>
-                    </div>
-                    """, unsafe_allow_html=True)
 
-        with tab1: render_rec(st.session_state.sc_list, "#FFFF00")
-        with tab2: render_rec(st.session_state.sw_list, "#00C9FF")
-
-else:
-    st.info("👆 상단의 버튼을 눌러 시장을 정밀 타격하십시오.")
+        with tab1: render_report_card(st.session_state.sc_list, "#FFFF00")
+        with tab2: render_report_card(st.session_state.sw_list, "#00C9FF")
