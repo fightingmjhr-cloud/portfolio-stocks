@@ -5,14 +5,14 @@ import time
 import FinanceDataReader as fdr
 
 # -----------------------------------------------------------------------------
-# [CORE ENGINE] 8대 엔진 & 정밀 분석 리포트 생성기
+# [CORE ENGINE] 8대 엔진 & 햄찌 어드바이저 (Smart Nagging Logic)
 # -----------------------------------------------------------------------------
 
 class SingularityEngine:
     def __init__(self):
         pass
 
-    # [1] 8대 엔진 데이터 생성 (시뮬레이션)
+    # [1] Metrics Calculation
     def _calculate_metrics(self, mode):
         omega = np.random.uniform(5.0, 25.0) 
         vol_surf = np.random.uniform(0.1, 0.9)
@@ -33,119 +33,145 @@ class SingularityEngine:
             "gnn": gnn, "sent": sent, "es": es, "kelly": kelly
         }
 
-    # [2] 승률 산출 및 근거 로그 작성 (Logic Trace)
+    # [2] Run Diagnosis
     def run_diagnosis(self, mode="swing"):
         m = self._calculate_metrics(mode)
         score = 35.0 
-        calc_log = ["기본점수(35)"] # 점수 계산 과정 기록
+        reasons = [] 
 
-        # Penalties
-        if m['vpin'] > 0.6: score -= 15; calc_log.append("독성매물(-15)")
-        if m['es'] < -0.15: score -= 15; calc_log.append("폭락징후(-15)")
-        if m['betti'] == 1: score -= 10; calc_log.append("구조붕괴(-10)")
+        if m['vpin'] > 0.6: score -= 15; reasons.append("☠️ 독성 위험")
+        if m['es'] < -0.15: score -= 15; reasons.append("💣 폭락 징후")
+        if m['betti'] == 1: score -= 10; reasons.append("⚠️ 구조 붕괴")
 
-        # Bonuses
         if mode == "scalping":
-            if m['hawkes'] > 2.5 and m['obi'] > 0.5:
-                score += 40; calc_log.append("퍼펙트수급(+40)")
-            elif m['hawkes'] > 1.5:
-                score += 15; calc_log.append("수급우위(+15)")
-            elif m['hawkes'] < 0.8:
-                score -= 10; calc_log.append("거래소강(-10)")
+            if m['hawkes'] > 2.5 and m['obi'] > 0.5: score += 40; reasons.append("🚀 퍼펙트 수급")
+            elif m['hawkes'] > 1.5: score += 15; reasons.append("⚡ 수급 우위")
+            elif m['hawkes'] < 0.8: score -= 10; reasons.append("💤 거래 소강")
         else: 
-            if m['hurst'] > 0.75 and m['gnn'] > 0.8:
-                score += 35; calc_log.append("대세상승(+35)")
-            elif m['hurst'] > 0.6:
-                score += 10; calc_log.append("추세양호(+10)")
-            else:
-                score -= 5; calc_log.append("추세미약(-5)")
+            if m['hurst'] > 0.75 and m['gnn'] > 0.8: score += 35; reasons.append("📈 대세 상승장")
+            elif m['hurst'] > 0.6: score += 10; reasons.append("↗️ 추세 양호")
+            else: score -= 5; reasons.append("📉 추세 미약")
 
-        # Common
-        if 9 < m['omega'] < 13: score += 5; calc_log.append("파동안정(+5)")
-        if m['te'] > 3.0: score += 5; calc_log.append("정보폭발(+5)")
+        if 9 < m['omega'] < 13: score += 5; reasons.append("📐 파동 안정")
+        if m['te'] > 3.0: score += 5; reasons.append("📡 정보 폭발")
 
         win_rate = min(0.92, score / 100)
         win_rate = max(0.15, win_rate)
         
-        # 근거 텍스트 생성
-        calc_str = " + ".join(calc_log) + f" = <b>{int(score)}점</b>"
-        
-        return win_rate, m, calc_str
+        return win_rate, m, reasons
 
-    # [3] 심층 분석 리포트 생성 (Deep Analyst)
+    # [3] Generate Report
     def generate_report(self, mode, price, m, wr, cash, current_qty, target_return):
-        # A. 가격 및 타임라인 설정
         if mode == "scalping":
             vol = m['vol_surf'] * 0.04
             entry = int(price * (1 - vol))
             target = max(int(price * (1 + target_return/100)), int(price * (1 + vol*1.5)))
             stop = int(price * (1 - vol*0.7))
-            time_str = "09:00~09:30 (골든타임)"
+            time_str = "09:00~09:30"
         else:
             target = int(price * (1 + target_return/100))
             stop = int(price * 0.93)
-            time_str = "15:20 (종가 베팅) 혹은 5일선 터치 시"
+            time_str = "종가 확인 후"
 
-        # B. 켈리 베팅 자금 산출
         adjusted_kelly = m['kelly'] * (wr / 0.8) if wr < 0.8 else m['kelly']
         alloc_cash = cash * adjusted_kelly
         can_buy_qty = int(alloc_cash / price) if price > 0 else 0
 
-        # C. 상세 분석 텍스트 (Micro-Level Analysis)
-        analysis_text = ""
-        if mode == "scalping":
-            if wr >= 0.75:
-                analysis_text = f"""
-                <b>[📈 기술적 프로파일링]</b> 현재 Hawkes 지수가 {m['hawkes']:.2f}로 임계치를 초과했습니다. 이는 단순 반등이 아니라, '자기 여진(Self-Exciting)'에 의한 2차, 3차 수급 폭발이 임박했음을 시사합니다. 특히 호가창 불균형(OBI)이 {m['obi']:.2f}로 매수벽이 두터워 하방 경직성이 매우 강합니다.<br><br>
-                <b>[🌊 유동성 분석]</b> VPIN(독성 유동성)이 {m['vpin']:.2f}로 매우 낮습니다. 이는 현재 거래량이 기관이나 스마트 머니의 매집일 가능성이 높으며, 개미 털기성 속임수 패턴이 아님을 의미합니다.
-                """
-            else:
-                analysis_text = f"""
-                <b>[📉 리스크 분석]</b> 수급은 일부 보이나 VPIN이 {m['vpin']:.2f}로 높습니다. 이는 고점에서 물량을 떠넘기는 '설거지' 패턴일 수 있습니다. 변동성 표면(Vol Surface)이 불안정하여 급락 위험이 큽니다.
-                """
-        else: # Swing
-            if wr >= 0.75:
-                analysis_text = f"""
-                <b>[📈 추세 분석]</b> 허스트 지수(Hurst Exponent)가 {m['hurst']:.2f}를 기록했습니다. 이는 주가가 랜덤워크를 벗어나 강력한 '기억(Memory)'을 가지고 추세를 지속하려는 성질이 극대화된 상태입니다. JLS 파동 모델상 로그 주기 진동수도 {m['omega']:.1f}로 붕괴 위험 없이 안정적입니다.<br><br>
-                <b>[🌐 네트워크 분석]</b> GNN 중심성 지표가 {m['gnn']:.2f}로 시장 주도주(Key Player)의 지위를 차지하고 있습니다. 주변 종목들이 이 종목의 등락을 따라가는 선행성을 보입니다.
-                """
-            else:
-                analysis_text = f"""
-                <b>[⏳ 조정 분석]</b> 상승 추세가 꺾이지는 않았으나, 단기 과열권에 진입했습니다. 위상수학적 구멍(Betti Number)이 감지되어 추세의 연결성이 잠시 끊길 수 있는 조정 구간입니다.
-                """
-
-        # D. 실전 행동 강령 (Action Script)
         if wr >= 0.75:
-            cmd = "🔥 STRONG BUY (공격적 진입)"
-            style = "color: #00FF00;"
-            action_guide = f"""
-            1. <b>진입:</b> 시초가 갭이 3% 이하라면 <b>시장가로 {int(can_buy_qty*0.5)}주 선진입</b>하십시오. 나머지 물량은 {entry:,}원 부근 눌림목에 걸어두세요.<br>
-            2. <b>홀딩:</b> 수익률 {target_return}% 도달 전까지는 웬만한 흔들림에 매도하지 마십시오.<br>
-            3. <b>멘탈:</b> 지금은 공포를 살 때가 아니라 탐욕을 부릴 때입니다.
-            """
+            cmd = "🔥 STRONG BUY"; style = "color: #00FF00;"
+            action = f"승률 {wr*100:.0f}% 확신. 현금 {int(adjusted_kelly*100)}% 투입하여 **{can_buy_qty}주** 매수."
         elif wr >= 0.55:
-            cmd = "⚖️ BUY / HOLD (분할 대응)"
-            style = "color: #FFAA00;"
-            action_guide = f"""
-            1. <b>진입:</b> 섣불리 덤비지 마십시오. 호가창 매수 잔량이 매도 잔량을 압도하는 순간 <b>{int(can_buy_qty/3)}주씩 3분할</b>로 접근하세요.<br>
-            2. <b>대응:</b> {entry:,}원을 지지하지 못하면 즉시 관망세로 전환하십시오.<br>
-            3. <b>비중:</b> 전체 시드의 20%를 넘기지 않는 것이 좋습니다.
-            """
+            cmd = "⚖️ BUY / HOLD"; style = "color: #FFAA00;"
+            action = f"리스크 관리. **{int(can_buy_qty/2)}주**만 분할 진입."
         else:
-            cmd = "🛡️ SELL / WAIT (현금 확보)"
-            style = "color: #FF4444;"
-            action_guide = f"""
-            1. <b>청산:</b> 보유 중이라면 반등 시마다 물량을 줄이십시오. 지금은 <b>현금이 가장 좋은 종목</b>입니다.<br>
-            2. <b>관망:</b> 차라리 맛있는 것을 사 드시고 HTS를 끄십시오. 이길 수 없는 싸움입니다.<br>
-            3. <b>조건:</b> 최소한 Hawkes 지수가 1.5 이상으로 올라올 때까지 진입 금지입니다.
-            """
+            cmd = "🛡️ SELL / WAIT"; style = "color: #FF4444;"
+            action = "진입 금지 및 현금 확보."
 
         return {
-            "cmd": cmd, "analysis": analysis_text, "action": action_guide, 
-            "time": time_str, "style": style, "score_log": m,
+            "cmd": cmd, "action": action, "time": time_str, "style": style,
             "prices": (entry if mode=='scalping' else price, target, stop),
             "qty_guide": can_buy_qty
         }
+
+    # [4] 🐹 햄찌의 스마트 잔소리 (Advanced Logic Advisor)
+    def hamzzi_smart_nagging(self, cash, portfolio, market_data):
+        # A. 포트폴리오 분석
+        total_invest = 0
+        current_val = 0
+        worst_stock = None
+        min_pnl = 0
+        
+        for s in portfolio:
+            invest = s['price'] * s['qty']
+            if s['name'] in market_data['Name'].values:
+                cur_p = int(market_data[market_data['Name'] == s['name']].iloc[0]['Close'])
+            else:
+                cur_p = s['price'] # 데이터 없으면 평단가로 가정
+                
+            val = cur_p * s['qty']
+            pnl = ((cur_p - s['price']) / s['price']) * 100
+            
+            total_invest += invest
+            current_val += val
+            
+            if pnl < min_pnl:
+                min_pnl = pnl
+                worst_stock = s['name']
+
+        total_asset = cash + current_val
+        cash_ratio = (cash / total_asset * 100) if total_asset > 0 else 0
+        total_pnl_pct = ((current_val - total_invest) / total_invest * 100) if total_invest > 0 else 0
+
+        # B. 시장 최고의 종목 찾기 (Top Pick for Recommendation)
+        best_pick_name = "삼성전자" # Default
+        best_pick_score = 0
+        best_pick_price = 0
+        
+        # 상위 5개만 빠르게 스캔해서 최고 종목 선정
+        for _, row in market_data.head(5).iterrows():
+            wr, _, _ = self.run_diagnosis("scalping")
+            if wr > best_pick_score:
+                best_pick_score = wr
+                best_pick_name = row['Name']
+                best_pick_price = int(row['Close'])
+
+        # C. 햄찌의 잔소리 로직 (Cute Start -> Smart Fact -> Specific Action)
+        title = "🐹 햄찌의 팩트 폭격기"
+        
+        # 시나리오 1: 돈이 너무 많음 (쫄보)
+        if cash_ratio > 70:
+            intro = "헤헤 사장님~ 통장에 현금이 빵빵하네요? 부자다 부자! 🌻"
+            fact = f"근데 지금 뭐 하시는 거예요? 현금을 놀리면 인플레이션에 돈이 녹는다니까요? 현재 시장 변동성(Vol Surface)이 안정화되고 있는데 왜 구경만 하세요?"
+            action = f"지금 당장 **[{best_pick_name}]** 차트 펴세요. 8대 엔진 점수가 **{best_pick_score*100:.0f}점**입니다. 현금의 30%를 털어서 **{int((cash*0.3)/best_pick_price)}주** 담으세요. 쫄지 마시고요!"
+            
+        # 시나리오 2: 손실 중 (존버충)
+        elif total_pnl_pct < -5:
+            intro = "아이고 우리 사장님... 계좌가 시퍼렇게 멍들었네... 😭 마음이 아파요..."
+            fact = f"솔직히 말할게요. **[{worst_stock or '보유종목'}]** 그거 안 오릅니다. '존버'는 승리한다고요? 아니요, 기회비용만 날리는 겁니다. 위상수학(Topology)적으로 추세가 붕괴됐어요."
+            action = f"눈 딱 감고 **[{worst_stock or '마이너스 종목'}]** 절반이라도 손절하세요. 그리고 그 돈으로 지금 수급 터지는 **[{best_pick_name}]**으로 갈아타세요. 복구하려면 움직여야 합니다!"
+            
+        # 시나리오 3: 수익 중 (자만)
+        elif total_pnl_pct > 10:
+            intro = "우와! 사장님 대박! 오늘 소고기 사주시는 거죠? 🐹❤️"
+            fact = f"근데 너무 좋아하지 마세요. 방심하는 순간 시장은 뺏어갑니다. 현재 꼬리 위험(Tail Risk) 지표가 슬슬 올라오고 있어요. 수익 줄 때 챙겨야 내 돈입니다."
+            action = f"욕심 부리지 말고 보유 물량의 **30%는 지금 시장가로 매도**해서 현금화하세요. 그리고 남은 돈으로 안전한 **[추세추종]** 포트폴리오를 다시 짭시다."
+            
+        # 시나리오 4: 어중간함 (방향성 부재)
+        else:
+            intro = "음... 사장님 계좌는 그냥 쏘쏘(So-So)하네요? 심심하죠? 🥱"
+            fact = "이럴 때가 제일 위험해요. 지루하다고 아무거나 뇌동매매 하다가 골로 갑니다. 지금은 '내쉬 균형(Nash Equilibrium)' 상태라 섣불리 움직이면 손해예요."
+            action = f"딱 하나만 추천할게요. **[{best_pick_name}]** 눌림목 올 때까지 기다리세요. 가격은 **{int(best_pick_price*0.99):,}원**입니다. 여기에 알림 설정해두고 주무세요."
+
+        full_msg = f"""
+        <div style='text-align:left;'>
+        <b>1. {intro}</b><br><br>
+        <b>2. 팩트 체크 (Fact Check)</b><br>
+        {fact}<br><br>
+        <b style='color:#FFFF00;'>3. 햄찌의 행동 지침 (Action Plan)</b><br>
+        {action}
+        </div>
+        """
+        return title, full_msg
 
 # [DATA]
 @st.cache_data(ttl=3600)
@@ -175,13 +201,13 @@ st.markdown("""
         box-shadow: 0 4px 15px rgba(0, 201, 255, 0.2);
     }
     
-    /* Stock Card (Premium Report Style) */
+    /* Stock Card */
     .stock-card { 
         background: #11151c; border-radius: 16px; padding: 25px; margin-bottom: 25px; 
         border: 1px solid #2d333b; box-shadow: 0 8px 30px rgba(0,0,0,0.8); position: relative;
     }
     
-    /* Rank Ribbon */
+    /* Rank Badge Corrected */
     .rank-badge {
         position: absolute; top: 0; left: 0; 
         background: linear-gradient(135deg, #FF4444, #FF0000); color: #fff; 
@@ -190,26 +216,24 @@ st.markdown("""
         box-shadow: 3px 3px 10px rgba(0,0,0,0.5);
     }
     
-    /* Sections inside Card */
     .report-section {
         margin-top: 15px; padding-top: 15px; border-top: 1px solid #333; font-size: 14px; line-height: 1.7; color: #ddd;
     }
     .report-title { color: #00C9FF; font-weight: bold; margin-bottom: 8px; font-size: 15px; }
     
-    /* Timeline Visual */
     .timeline-visual {
         display: flex; justify-content: space-between; background: #0d1117; 
         padding: 12px; border-radius: 8px; margin-top: 15px; font-size: 13px; border: 1px solid #333;
     }
-    .t-item { text-align: center; }
     .t-item b { display: block; font-size: 15px; margin-top: 4px; color: #fff; }
     
-    /* Hamzzi */
+    /* Hamzzi Box */
     .hamzzi-box {
-        background-color: #2d1f15; border: 2px solid #FFAA00; border-radius: 15px;
-        padding: 20px; text-align: center; color: #FFAA00; margin-bottom: 20px;
-        font-size: 16px; font-weight: bold;
+        background-color: #26211c; border: 2px solid #FFAA00; border-radius: 15px;
+        padding: 25px; color: #eee; margin-bottom: 25px; font-size: 15px; line-height: 1.6;
+        box-shadow: 0 0 20px rgba(255, 170, 0, 0.2);
     }
+    .hamzzi-title { color: #FFAA00; font-size: 20px; font-weight: 900; margin-bottom: 15px; display: flex; align-items: center; gap: 10px;}
 
     div[data-testid="column"]:nth-child(5) { margin-left: -20px !important; margin-top: 2px; }
     header, footer {visibility: hidden;}
@@ -269,7 +293,7 @@ with st.expander("💰 자산 및 포트폴리오 관리", expanded=True):
         market_data = load_top50_data() 
         my_results = []
         
-        with st.spinner("보유 포트폴리오 정밀 해부 중... (8대 엔진)"):
+        with st.spinner("보유 포트폴리오 정밀 해부 중..."):
             for s in st.session_state.portfolio:
                 if not s['name']: continue
                 mode = "scalping" if s['strategy'] == "초단타" else "swing"
@@ -282,18 +306,25 @@ with st.expander("💰 자산 및 포트폴리오 관리", expanded=True):
                         p_df = fdr.DataReader(code); price = int(p_df['Close'].iloc[-1])
                     except: pass
                 
-                wr, m, log_str = engine.run_diagnosis(mode)
+                wr, m, reasons = engine.run_diagnosis(mode)
                 plan = engine.generate_report(mode, price, m, wr, st.session_state.cash, s['qty'], st.session_state.target_return)
                 pnl = ((price - s['price'])/s['price']*100) if s['price'] > 0 else 0
-                my_results.append({'name': s['name'], 'price': price, 'pnl': pnl, 'win': wr, 'mode': mode, 'log': log_str, 'plan': plan})
+                my_results.append({'name': s['name'], 'price': price, 'pnl': pnl, 'win': wr, 'mode': mode, 'log': " + ".join(reasons), 'plan': plan})
             st.session_state.my_diagnosis = my_results
         st.rerun()
 
-# [BUTTON: HAMZZI]
+# [BUTTON: HAMZZI ADVISOR]
 st.markdown("<br>", unsafe_allow_html=True)
-if st.button("🐹 햄찌의 계좌 훈수 두기", use_container_width=True):
-    msg = "사장님, 지금 주식창 볼 때가 아니에요! 일하세요 일! 🐹 (농담이고, 현금 비중 좀 챙기세요)"
-    st.markdown(f"<div class='hamzzi-box'>🐹 햄찌 왈:<br><br>{msg}</div>", unsafe_allow_html=True)
+if st.button("🐹 햄찌의 계좌 훈수 두기 (클릭해서 혼나기)", use_container_width=True):
+    engine = SingularityEngine()
+    market_data = load_top50_data()
+    title, msg = engine.hamzzi_smart_nagging(st.session_state.cash, st.session_state.portfolio, market_data)
+    st.markdown(f"""
+    <div class='hamzzi-box'>
+        <div class='hamzzi-title'>🐹 {title}</div>
+        {msg}
+    </div>
+    """, unsafe_allow_html=True)
 
 # [DUAL LAUNCH BUTTONS]
 c_btn1, c_btn2 = st.columns(2)
@@ -309,13 +340,13 @@ def run_market_scan():
             price = int(float(row['Close']))
             name = row['Name']
             
-            wr_sc, m_sc, l_sc = engine.run_diagnosis("scalping")
+            wr_sc, m_sc, r_sc = engine.run_diagnosis("scalping")
             p_sc = engine.generate_report("scalping", price, m_sc, wr_sc, st.session_state.cash, 0, st.session_state.target_return)
-            sc_all.append({'name': name, 'price': price, 'win': wr_sc, 'mode': "초단타", 'log': l_sc, 'plan': p_sc})
+            sc_all.append({'name': name, 'price': price, 'win': wr_sc, 'mode': "초단타", 'log': " + ".join(r_sc), 'plan': p_sc})
             
-            wr_sw, m_sw, l_sw = engine.run_diagnosis("swing")
+            wr_sw, m_sw, r_sw = engine.run_diagnosis("swing")
             p_sw = engine.generate_report("swing", price, m_sw, wr_sw, st.session_state.cash, 0, st.session_state.target_return)
-            sw_all.append({'name': name, 'price': price, 'win': wr_sw, 'mode': "추세추종", 'log': l_sw, 'plan': p_sw})
+            sw_all.append({'name': name, 'price': price, 'win': wr_sw, 'mode': "추세추종", 'log': " + ".join(r_sw), 'plan': p_sw})
 
             if wr_sc >= wr_sw: ideal_all.append(sc_all[-1])
             else: ideal_all.append(sw_all[-1])
@@ -369,11 +400,6 @@ if st.session_state.get('running'):
                 </div>
                 
                 <div class='report-section'>
-                    <div class='report-title'>🔍 8대 엔진 심층 분석</div>
-                    {p['analysis']}
-                </div>
-                
-                <div class='report-section'>
                     <div class='report-title' style='color:{border};'>{p['cmd']}</div>
                     {p['action']}
                 </div>
@@ -403,11 +429,6 @@ if st.session_state.get('running'):
                 <div class='report-section'>
                     <div class='report-title'>📊 점수 산출 근거</div>
                     {r['log']}
-                </div>
-                
-                <div class='report-section'>
-                    <div class='report-title'>🔍 8대 엔진 심층 분석</div>
-                    {p['analysis']}
                 </div>
                 
                 <div class='report-section'>
@@ -442,11 +463,6 @@ if st.session_state.get('running'):
                     <div class='report-section'>
                         <div class='report-title'>📊 점수 산출 근거</div>
                         {r['log']}
-                    </div>
-                    
-                    <div class='report-section'>
-                        <div class='report-title'>🔍 8대 엔진 심층 분석</div>
-                        {p['analysis']}
                     </div>
                     
                     <div class='report-section'>
