@@ -87,7 +87,7 @@ class SingularityEngine:
         h_style = "border: 2px solid #FFAA00; color: #FFAA00;"
         if wr >= 0.75:
             h_brief = random.choice([
-                f"사장님! <b>[Hawkes {m['hawkes']:.2f}]</b> 수치 봤어?! 수급이 미친 듯이 들어온다구! 🚀",
+                f"사장님! <b>[Hawkes {m['hawkes']:.2f}]</b> 수치 봤어?! 수급이 미쳤어! 🚀",
                 f"대박! <b>[GNN 중심성]</b> 폭발! 돈이 다 여기로 몰린다구! 💰",
                 f"지금이야! <b>[Vol Surface]</b>가 춤을 춰! 파도 탈 시간이야! 🌊"
             ])
@@ -439,6 +439,22 @@ with st.expander("💰 내 자산 및 포트폴리오 설정", expanded=True):
     with col_timer:
         auto_my = st.selectbox("자동진단", list(TIME_OPTS.keys()), index=0, label_visibility="collapsed")
 
+    # ADVISORS
+    st.markdown("<br>", unsafe_allow_html=True)
+    bc1, bc2 = st.columns(2)
+    with bc1:
+        if st.button("🐹 햄찌의 앙큼상큼 팩트폭격 뀨? ❤️", use_container_width=True):
+            engine = SingularityEngine()
+            title, msg = engine.hamzzi_nagging()
+            st.session_state.adv_msg = f"<div class='hamzzi-box'><div class='hamzzi-title'>{title}</div>{msg}</div>"
+    with bc2:
+        if st.button("🐯 호찌의 유비무환(有備無患) 대호통", use_container_width=True):
+            engine = SingularityEngine()
+            title, msg = engine.hojji_nagging()
+            st.session_state.adv_msg = f"<div class='hojji-box'><div class='tiger-title'>{title}</div>{msg}</div>"
+            
+    if 'adv_msg' in st.session_state: st.markdown(st.session_state.adv_msg, unsafe_allow_html=True)
+
 # [DISPLAY MY DIAGNOSIS RESULT]
 def render_full_card(d, idx=None, is_rank=False):
     engine = SingularityEngine()
@@ -485,7 +501,7 @@ def render_full_card(d, idx=None, is_rank=False):
         <div class='persona-box' style='border-left-color: #FFAA00;'>
             <div class='persona-title' style='color:#FFAA00;'>{h['title']}</div>
             <div style='margin-bottom:10px;'>{h['brief']}</div>
-            <div style='background:#222; padding:10px; border-radius:8px; margin-bottom:10px;'><b>💡 행동 지침:</b> {h['act']}</div>
+            <div style='background:#222; padding:10px; border-radius:8px; margin-bottom:10px;'><b>💡 행동 지침:</b> {h['action']}</div>
             <div style='font-size:13px; color:#aaa;'><b>🎯 이유:</b> {h['why']}</div>
         </div>
         """), unsafe_allow_html=True)
