@@ -8,7 +8,7 @@ import random
 import textwrap
 
 # -----------------------------------------------------------------------------
-# [0] CRITICAL INITIALIZATION (MUST BE FIRST)
+# [1] SYSTEM CONFIG & CRITICAL DATA LOADING (최우선 실행)
 # -----------------------------------------------------------------------------
 st.set_page_config(page_title="Hojji & Hamzzi Singularity", page_icon="🐯", layout="centered")
 
@@ -29,12 +29,31 @@ def load_top50_data():
         return df.sort_values(by='Marcap', ascending=False).head(50)
     except: return pd.DataFrame()
 
-# [SAFETY] 전역 변수 선언 (UI 렌더링 전)
+# [CRITICAL FIX] 전역 변수 즉시 할당
 stock_names = get_stock_list()
 TIME_OPTS = {"⛔ 수동": 0, "⏱️ 3분": 180, "⏱️ 10분": 600, "⏱️ 30분": 1800}
 
 # -----------------------------------------------------------------------------
-# [1] STYLING (Luxury Dark & Neon Gold)
+# [2] SESSION STATE INITIALIZATION (변수 초기화 보장)
+# -----------------------------------------------------------------------------
+if 'portfolio' not in st.session_state: st.session_state.portfolio = []
+if 'ideal_list' not in st.session_state: st.session_state.ideal_list = []
+if 'sc_list' not in st.session_state: st.session_state.sc_list = []
+if 'sw_list' not in st.session_state: st.session_state.sw_list = []
+if 'cash' not in st.session_state: st.session_state.cash = 10000000 
+if 'target_return' not in st.session_state: st.session_state.target_return = 5.0
+if 'my_diagnosis' not in st.session_state: st.session_state.my_diagnosis = []
+if 'market_view_mode' not in st.session_state: st.session_state.market_view_mode = None
+if 'port_analysis' not in st.session_state: st.session_state.port_analysis = None
+if 'l_my' not in st.session_state: st.session_state.l_my = 0
+if 'l_top3' not in st.session_state: st.session_state.l_top3 = 0
+if 'l_sep' not in st.session_state: st.session_state.l_sep = 0
+if 'trigger_my' not in st.session_state: st.session_state.trigger_my = False
+if 'trigger_top3' not in st.session_state: st.session_state.trigger_top3 = False
+if 'trigger_sep' not in st.session_state: st.session_state.trigger_sep = False
+
+# -----------------------------------------------------------------------------
+# [3] STYLING (Luxury Dark & Neon Gold)
 # -----------------------------------------------------------------------------
 st.markdown("""
 <style>
@@ -128,33 +147,9 @@ st.markdown("""
 st.markdown("<h1 style='text-align: center; color: #d4af37; text-shadow: 0 0 20px rgba(212,175,55,0.4);'>🐯 Hojji & Hamzzi Singularity 🐹</h1>", unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
-# [2] STATE MANAGEMENT
-# -----------------------------------------------------------------------------
-if 'portfolio' not in st.session_state: st.session_state.portfolio = []
-if 'ideal_list' not in st.session_state: st.session_state.ideal_list = []
-if 'sc_list' not in st.session_state: st.session_state.sc_list = []
-if 'sw_list' not in st.session_state: st.session_state.sw_list = []
-if 'cash' not in st.session_state: st.session_state.cash = 10000000 
-if 'target_return' not in st.session_state: st.session_state.target_return = 5.0
-if 'my_diagnosis' not in st.session_state: st.session_state.my_diagnosis = []
-if 'market_view_mode' not in st.session_state: st.session_state.market_view_mode = None
-if 'port_analysis' not in st.session_state: st.session_state.port_analysis = None
-# Timers
-if 'l_my' not in st.session_state: st.session_state.l_my = 0
-if 'l_top3' not in st.session_state: st.session_state.l_top3 = 0
-if 'l_sep' not in st.session_state: st.session_state.l_sep = 0
-# Triggers
-if 'trigger_my' not in st.session_state: st.session_state.trigger_my = False
-if 'trigger_top3' not in st.session_state: st.session_state.trigger_top3 = False
-if 'trigger_sep' not in st.session_state: st.session_state.trigger_sep = False
-
-# -----------------------------------------------------------------------------
-# [3] SINGULARITY OMEGA ENGINE (COMPLETE CLASS)
+# [4] SINGULARITY OMEGA ENGINE
 # -----------------------------------------------------------------------------
 class SingularityEngine:
-    def __init__(self):
-        pass
-
     def _calculate_metrics(self, name, mode):
         unique_key = f"{name}-{mode}-{time.strftime('%Y%m%d-%H')}"
         seed_val = zlib.crc32(unique_key.encode())
@@ -181,34 +176,18 @@ class SingularityEngine:
         score = 35.0 
         tags = [{'label': '기본 마진', 'val': '+35', 'type': 'base'}]
 
-        if m['vpin'] > 0.6: 
-            score -= 20
-            tags.append({'label': '⚠️ 독성 매물(VPIN)', 'val': '-20', 'type': 'bad'})
-        if m['es'] < -0.20: 
-            score -= 15
-            tags.append({'label': '📉 Tail Risk(ES)', 'val': '-15', 'type': 'bad'})
-        if m['betti'] == 1: 
-            score -= 10
-            tags.append({'label': '🌀 위상 붕괴(TDA)', 'val': '-10', 'type': 'bad'})
+        if m['vpin'] > 0.6: score -= 20; tags.append({'label': '⚠️ 독성 매물(VPIN)', 'val': '-20', 'type': 'bad'})
+        if m['es'] < -0.20: score -= 15; tags.append({'label': '📉 Tail Risk(ES)', 'val': '-15', 'type': 'bad'})
+        if m['betti'] == 1: score -= 10; tags.append({'label': '🌀 위상 붕괴(TDA)', 'val': '-10', 'type': 'bad'})
         
         if mode == "scalping":
-            if m['hawkes'] > 2.5: 
-                score += 45
-                tags.append({'label': '🚀 Hawkes 폭발', 'val': '+45', 'type': 'best'})
-            elif m['hawkes'] > 1.5: 
-                score += 15
-                tags.append({'label': '⚡ 수급 우위', 'val': '+15', 'type': 'good'})
+            if m['hawkes'] > 2.5: score += 45; tags.append({'label': '🚀 Hawkes 폭발', 'val': '+45', 'type': 'best'})
+            elif m['hawkes'] > 1.5: score += 15; tags.append({'label': '⚡ 수급 우위', 'val': '+15', 'type': 'good'})
         else: 
-            if m['hurst'] > 0.75: 
-                score += 40
-                tags.append({'label': '📈 추세 지속(Hurst)', 'val': '+40', 'type': 'best'})
-            elif m['hurst'] > 0.6: 
-                score += 10
-                tags.append({'label': '↗️ 모멘텀 양호', 'val': '+10', 'type': 'good'})
+            if m['hurst'] > 0.75: score += 40; tags.append({'label': '📈 추세 지속(Hurst)', 'val': '+40', 'type': 'best'})
+            elif m['hurst'] > 0.6: score += 10; tags.append({'label': '↗️ 모멘텀 양호', 'val': '+10', 'type': 'good'})
 
-        if m['gnn'] > 0.8: 
-            score += 10
-            tags.append({'label': '👑 GNN 대장주', 'val': '+10', 'type': 'good'})
+        if m['gnn'] > 0.8: score += 10; tags.append({'label': '👑 GNN 대장주', 'val': '+10', 'type': 'good'})
 
         win_rate = min(0.95, max(0.10, score / 100))
         return win_rate, m, tags
@@ -227,6 +206,7 @@ class SingularityEngine:
 
         # --- 🐹 HAMZZI (Aggressive) ---
         if wr >= 0.70:
+            h_title = "🐹 햄찌: \"인생은 한방! 지금이 기회야!\" 🔥"
             h_brief = random.choice([
                 f"사장님! <b>[Hawkes Process]</b> 강도가 {m['hawkes']:.2f}를 돌파했어! 이건 단순 수급이 아니라 '자기 여진'에 의한 연쇄 폭발이야! 🚀",
                 f"대박! <b>[GNN(그래프 신경망)]</b> 분석 결과, 이 종목이 유동성 허브(Hub) 역할을 하고 있어. 돈이 다 여기로 쏠린다구! 💰",
@@ -234,38 +214,42 @@ class SingularityEngine:
             h_act = f"쫄지마! <b>{can_buy}주</b> 시장가 매수! <b>{target:,}원</b> 돌파하면 피라미딩(Pyramiding)으로 불타기 가즈아!"
             h_why = f"변동성 표면(Vol Surface: {m['vol_surf']:.2f})이 우상향 중이야. 베타(Beta) 수익을 극대화하려면 지금 리스크를 감수해야 해!"
         elif wr >= 0.50:
+            h_title = "🐹 햄찌: \"간 좀 볼까? 단타 치기 딱 좋아!\" ⚡"
             h_brief = f"음~ <b>[Hurst Exponent]</b>가 {m['hurst']:.2f}로 추세가 살아있네! 프랙탈 구조상 단타 놀이터로 딱이야. 🎢"
             h_act = f"일단 <b>{int(can_buy/3)}주</b>만 정찰병 보내고, <b>{price:,}원</b> 지지하면 나머지 태워!"
             h_why = f"모멘텀은 좋은데 <b>[OBI(호가 불균형)]</b>가 {m['obi']:.2f}로 눈치 싸움 중이야. 짧게 치고 빠지는 '게릴라 전술'이 유효해."
         else:
+            h_title = "🐹 햄찌: \"으악! 돔황챠!! 폭탄이야!\" 💣"
             h_brief = f"으악! 돔황챠!! 😱 <b>[VPIN {m['vpin']:.2f}]</b> 경고등 켜졌어! 기관 형님들이 정보 우위로 설거지 중이라구! 💣"
             h_act = "절대 매수 금지! ❌ 보유 중이면 당장 시장가로 던져! 탈출은 지능순이야! 현금 쥐고 숨어!"
             h_why = f"<b>[Betti Number]</b>가 1로 변했어. 위상수학적으로 시장 구조에 구멍(Hole)이 뚫렸다는 뜻이야. 붕괴 직전이라구."
 
         # --- 🐯 HOJJI (Conservative) ---
         if wr >= 0.70:
+            t_title = "🐯 호찌: \"허허, 진국일세. 기회를 잡게.\" 🍵"
             t_brief = f"허허, <b>[JLS 모델]</b> 시뮬레이션 결과 임계 시간($t_c$)까지 여유가 있구먼. 버블 붕괴 걱정 없이 상승을 즐길 수 있는 구간일세. 🍵"
             t_act = f"안전마진이 충분해. <b>{int(can_buy*0.8)}주</b> 정도 비중을 실어서 <b>{target:,}원</b>까지 진득하게 '우보천리'하게."
             t_why = f"수급과 펀더멘털이 '금상첨화'일세. <b>[전이 엔트로피(TE)]</b> 흐름도 양의 인과관계를 보여주고 있어."
         elif wr >= 0.50:
+            t_title = "🐯 호찌: \"계륵일세. 돌다리도 두들겨 보게.\" 🐅"
             t_brief = f"계륵일세. 🐅 <b>[변동성 {m['vol_surf']:.2f}]</b>이 너무 심해. '내우외환'이 걱정되는군. <b>[꼬리 위험(ES)]</b>이 도사리고 있어."
             t_act = f"욕심 버리고 <b>{int(can_buy*0.2)}주</b>만 분할로 담게. '유비무환'의 자세가 필요해."
             t_why = "변동성이 너무 커. 자칫하면 큰 내상을 입을 수 있어. 리스크 관리가 우선이야."
         else:
+            t_title = "🐯 호찌: \"어허! 사상누각이야!\" 🏚️"
             t_brief = f"에잉 쯧쯧! 😡 <b>[독성 매물]</b>이 넘쳐나는구먼! 사상누각이야! 기초가 부실한데 어찌 오르겠나!"
             t_act = "쳐다도 보지 말게. 현금이 곧 최고의 종목이야. 🛡️ <b>[Non-Ergodic]</b> 파산 위험을 피하는 게 상책일세."
             t_why = "스마트 머니는 이미 떠났어. 떨어지는 칼날을 맨손으로 잡으려 하지 말게."
 
         return {
             "prices": (price, target, stop),
-            "hamzzi": {"title": "🐹 햄찌의 야수 본능", "brief": h_brief, "act": h_act, "why": h_why},
-            "hojji": {"title": "🐯 호찌의 유비무환", "brief": t_brief, "act": t_act, "why": t_why}
+            "hamzzi": {"title": h_title, "brief": h_brief, "act": h_act, "why": h_why},
+            "hojji": {"title": t_title, "brief": t_brief, "act": t_act, "why": t_why}
         }
 
     def diagnose_portfolio(self, portfolio, cash, target_return):
-        # Handle empty portfolio case
         if not portfolio:
-            return "포트폴리오가 비어있어. 종목을 추가해!", "자네, 계좌가 비었구먼. 시작이 반일세."
+            return "포트폴리오가 비었어!", "자네, 계좌가 비었구먼."
 
         asset_val = sum([s['price'] * s['qty'] for s in portfolio])
         total_val = asset_val + cash
@@ -325,22 +309,10 @@ class SingularityEngine:
         return title, msg
 
 # -----------------------------------------------------------------------------
-# [4] OCR MOCK
-# -----------------------------------------------------------------------------
-def parse_image_portfolio(uploaded_file):
-    with st.spinner("🔄 [Singularity Omega] OCR 이미지 정밀 분석 중..."):
-        time.sleep(1.5)
-    st.toast("✅ 이미지 스캔 완료! 데이터를 불러왔습니다.", icon="📸")
-    return [
-        {'name': '두산에너빌리티', 'price': 17500, 'qty': 100, 'strategy': '추세추종'},
-        {'name': 'SK하이닉스', 'price': 135000, 'qty': 10, 'strategy': '추세추종'},
-        {'name': '카카오', 'price': 55000, 'qty': 30, 'strategy': '초단타'}
-    ]
-
-# -----------------------------------------------------------------------------
 # [5] UI COMPONENT RENDERER (Clean HTML)
 # -----------------------------------------------------------------------------
 def render_full_card(d, idx=None, is_rank=False):
+    engine = SingularityEngine()
     p = d['plan']
     win_pct = d['win'] * 100
     
