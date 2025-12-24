@@ -8,11 +8,11 @@ import random
 from datetime import datetime
 
 # -----------------------------------------------------------------------------
-# [0] SYSTEM CONFIG & STATE MANAGEMENT
+# [0] SYSTEM CONFIG & STATE MANAGEMENT (가장 먼저 실행)
 # -----------------------------------------------------------------------------
 st.set_page_config(page_title="Hojji & Hamzzi Quant", page_icon="🐹", layout="centered")
 
-# [State Init]
+# [State Init] 세션 상태 초기화
 if 'market_indices' not in st.session_state: st.session_state.market_indices = None
 if 'last_market_update' not in st.session_state: st.session_state.last_market_update = 0
 if 'portfolio' not in st.session_state: st.session_state.portfolio = []
@@ -32,7 +32,7 @@ if 'l_my' not in st.session_state: st.session_state.l_my = 0
 if 'l_top3' not in st.session_state: st.session_state.l_top3 = 0
 if 'l_sep' not in st.session_state: st.session_state.l_sep = 0
 
-# [Function] Market Data Fetcher (Only called when needed)
+# [Function] Market Data Fetcher
 def update_market_indices():
     try:
         kospi = fdr.DataReader('KS11').iloc[-1]
@@ -43,7 +43,7 @@ def update_market_indices():
         }
         st.session_state.last_market_update = time.time()
     except:
-        pass
+        pass # 일시적 에러는 무시하고 넘어감
 
 @st.cache_data(ttl=86400)
 def get_stock_list():
@@ -70,7 +70,7 @@ TIME_OPTS = {
 }
 
 # -----------------------------------------------------------------------------
-# [1] STYLING (High Contrast & Readability Fix)
+# [1] STYLING
 # -----------------------------------------------------------------------------
 st.markdown("""
 <style>
@@ -103,7 +103,7 @@ st.markdown("""
         padding: 0; margin-bottom: 30px; box-shadow: 0 8px 30px rgba(0,0,0,0.8);
     }
     
-    /* Analysis Box (Text Color Fixed) */
+    /* Analysis Box */
     .analysis-box {
         background-color: #151515; border-radius: 10px; padding: 25px; margin-top: 15px; 
         line-height: 1.8; color: #ffffff !important; border: 1px solid #333;
@@ -112,7 +112,7 @@ st.markdown("""
     .box-hamzzi { border-left-color: #FF9900; }
     .box-hojji { border-left-color: #FF4444; }
     
-    /* Timetable Box (Fixed) */
+    /* Timetable Box */
     .timetable-box {
         background: #0a0a0a; padding: 20px; border-radius: 8px; border-left: 3px solid #00C9FF; margin-top: 20px;
         color: #ddd; font-size: 14px; line-height: 1.6; border: 1px solid #222;
@@ -133,11 +133,12 @@ st.markdown("""
 # -----------------------------------------------------------------------------
 # [2] HEADER & MARKET INDICES
 # -----------------------------------------------------------------------------
-st.markdown("<h1 style='text-align: center; color: #FFD700;'>🐯 호찌와 햄찌의 퀀트 대작전 🚀</h1>", unsafe_allow_html=True)
+# [제목 수정] 로켓 제거, 햄찌 추가
+st.markdown("<h1 style='text-align: center; color: #FFD700;'>🐯 호찌와 햄찌의 퀀트 대작전 🐹</h1>", unsafe_allow_html=True)
 
 c_m1, c_m2 = st.columns([3, 1])
 with c_m1:
-    # 최초 실행 시 데이터 로드
+    # 최초 실행 시 시장 데이터 로드
     if st.session_state.market_indices is None:
         update_market_indices()
     
@@ -164,7 +165,6 @@ with c_m2:
 # -----------------------------------------------------------------------------
 class SingularityEngine:
     def _calculate_metrics(self, name, mode):
-        # 종목명 + 시간 기반으로 시드 생성 -> 같은 종목이라도 시간에 따라 변화
         unique_key = f"{name}-{mode}-{time.strftime('%Y%m%d-%H-%M')}-{random.randint(0,100)}"
         seed_val = zlib.crc32(unique_key.encode())
         np.random.seed(seed_val)
@@ -179,7 +179,7 @@ class SingularityEngine:
 
     def run_diagnosis(self, name, mode="swing"):
         m = self._calculate_metrics(name, mode)
-        score = 0.0 # Strict Score
+        score = 0.0 
         tags = [{'label': '분석 완료', 'val': 'OK', 'bg': '#888'}]
 
         if 20.0 <= m['omega'] <= 28.0: score += 20; tags.append({'label': 'JLS 임계점', 'val': 'Perfect', 'bg': '#00ff00'})
@@ -187,7 +187,6 @@ class SingularityEngine:
         if m['gnn'] > 0.85: score += 15; tags.append({'label': 'GNN 대장주', 'val': 'Top', 'bg': '#FFD700'})
         if m['hurst'] > 0.65: score += 15; tags.append({'label': '추세 지속', 'val': 'Strong', 'bg': '#00ccff'})
 
-        # Fatal Penalty
         if m['vpin'] > 0.65: score -= 40; tags.append({'label': '⚠️ 독성 매물', 'val': 'Danger', 'bg': '#ff4444'})
         if m['es'] < -0.20: score -= 25; tags.append({'label': '📉 Tail Risk', 'val': 'High', 'bg': '#ff4444'})
         if m['betti'] == 1: score -= 25; tags.append({'label': '🌀 구조 붕괴', 'val': 'Critical', 'bg': '#ff4444'})
@@ -195,164 +194,77 @@ class SingularityEngine:
         final_score = max(0.0, min(100.0, score))
         return final_score / 100.0, m, tags
 
-    # 🐹 햄찌: 무한 랜덤 문장 생성기 (메스가끼 + 8대 엔진 논리)
     def _get_hamzzi_msg(self, wr, m, can_buy, target, price):
-        # 1. 도입부
-        intros = [
-            "야, 쫄보야? 이거 보고도 가만히 있어?", "어머? 아직도 매수 버튼 안 눌렀어?", 
-            "돈 벌기 싫어? 내가 떠먹여 줘야 해?", "멍청하게 쳐다만 볼 거야? 버스 떠난다?", 
-            "허접~♡ 분석은 내가 다 했으니까 넌 매수나 눌러!"
-        ]
-        
-        # 2. 엔진 논리 (다양한 표현)
-        physics_logic = [
-            f"**JLS 모델**이 Omega {m['omega']:.1f}Hz 찍었어! 이게 뭔 소리냐면 주가가 폭발하기 직전에 부르르 떠는 거야. 임계 폭발(Critical Burst) 직전이라구!",
-            f"**Hawkes 강도** {m['hawkes']:.2f} 돌파! 기계들이 서로 '나도 살래!' 하면서 매수 주문 쏟아내고 있어. 자기 여진 상태라구."
-        ]
-        network_logic = [
-            f"**GNN 중심성** {m['gnn']:.2f} 실화냐? 시장의 모든 돈이 여기로 빨려 들어가고 있어. 블랙홀급 대장주야.",
-            f"**Hurst 지수** {m['hurst']:.2f} 보이지? 추세가 살아있어. 한 번 방향 잡으면 끝까지 가는 놈이야."
-        ]
-        risk_logic = [
-            f"으악! **VPIN** {m['vpin']:.2f}야! 세력 형님들이 개미 꼬셔서 물량 넘기는 '설거지' 중이라구! 당하고 싶어?",
-            f"**Betti Number** 1 떴어. 위상수학적으로 차트에 구멍 뚫려서 지지선 붕괴됐다는 뜻이야. 지옥문 열렸어."
-        ]
+        intros = ["야, 쫄보야? 이거 보고도 가만히 있어?", "어머? 아직도 매수 버튼 안 눌렀어?", "돈 벌기 싫어? 내가 떠먹여 줘야 해?", "멍청하게 쳐다만 볼 거야? 버스 떠난다?"]
+        physics_logic = [f"**JLS 모델**이 Omega {m['omega']:.1f}Hz 찍었어! 임계 폭발(Critical Burst) 직전이라구!", f"**Hawkes 강도** {m['hawkes']:.2f} 돌파! 기계들이 매수 주문 쏟아내고 있어."]
+        network_logic = [f"**GNN 중심성** {m['gnn']:.2f} 실화냐? 블랙홀급 대장주야.", f"**Hurst 지수** {m['hurst']:.2f} 보이지? 한 번 방향 잡으면 끝까지 가는 놈이야."]
+        risk_logic = [f"으악! **VPIN** {m['vpin']:.2f}야! '설거지' 당하고 싶어?", f"**Betti Number** 1 떴어. 지지선 붕괴됐다는 뜻이야."]
 
         if wr >= 0.70:
             return f"""
             **[🐹 햄찌의 야수 본능: "쫄보야? 눈 떠!"]**
-            
-            "{random.choice(intros)}
-            {random.choice(physics_logic)}
-            {random.choice(network_logic)}
-            이건 기술적 반등이 아니라 '패러다임의 변화'야. 인생 역전 기회라구!"
-            
-            <div class='timetable-box'>
-            <b>⏰ 햄찌의 타임테이블</b><br>
-            1. <b>09:00</b>: 장 시작 땡 하자마자 <b>시장가</b>로 <b>{can_buy}주</b> 전량 매수! 1초도 늦지 마!<br>
-            2. <b>09:15</b>: 3% 이상 급등하면 눌림목(VWAP 근처)에서 <b>신용 미수</b>까지 써서 불타기!<br>
-            3. <b>14:30</b>: 상한가 문 닫으면 오버나잇, 아니면 <b>{target:,}원</b>에서 절반 챙겨.
-            </div>
-            
+            "{random.choice(intros)} {random.choice(physics_logic)} {random.choice(network_logic)} 인생 역전 기회라구!"
+            <div class='timetable-box'><b>⏰ 햄찌의 타임테이블</b><br>1. <b>09:00</b>: <b>시장가</b>로 <b>{can_buy}주</b> 전량 매수!<br>2. <b>09:15</b>: 눌림목에서 <b>신용 미수</b> 불타기!<br>3. <b>14:30</b>: <b>{target:,}원</b>에서 절반 챙겨.</div>
             **👉 한줄 요약: 인생 역전 티켓이야! 쫄지 말고 질러!**
             """
         elif wr >= 0.50:
             return f"""
             **[🐹 햄찌의 단타 훈수: "짧게 먹고 튀어!"]**
-            
-            "흥, 차트가 좀 애매하네? 그래도 **Hurst** {m['hurst']:.2f}라 추세는 살아있어. 단타 치기엔 좋은 놀이터지.
-            근데 **OBI(호가 불균형)**가 좀 별로야. 세력들이 눈치 보고 있단 뜻이지. 길게 가져가면 물린다?"
-            
-            <div class='timetable-box'>
-            <b>⏰ 햄찌의 타임테이블</b><br>
-            1. <b>09:00</b>: 절대 진입 금지. 구경만 해.<br>
-            2. <b>10:30</b>: <b>{price:,}원</b> 지지하는 거 보고 <b>{int(can_buy/3)}주</b>만 '정찰병' 투입.<br>
-            3. <b>13:30</b>: 점심 먹고 슈팅 나오면 뒤도 돌아보지 말고 전량 매도! '줄먹'이 진리야.
-            </div>
-            
+            "흥, 애매하네. **Hurst** {m['hurst']:.2f}라 추세는 살아있어. 근데 **OBI**가 별로야. 길게 가면 물린다?"
+            <div class='timetable-box'><b>⏰ 햄찌의 타임테이블</b><br>1. <b>09:00</b>: 절대 진입 금지.<br>2. <b>10:30</b>: <b>{price:,}원</b> 지지 시 <b>{int(can_buy/3)}주</b> 정찰병 투입.<br>3. <b>13:30</b>: 슈팅 나오면 전량 매도!</div>
             **👉 한줄 요약: 욕심 부리지 마! 짧게 먹고 튀는 거야.**
             """
         else:
             return f"""
             **[🐹 햄찌의 경멸: "너 바보야?"]**
-            
-            "야! 너 제정신이야? {random.choice(risk_logic)}
-            **Tail Risk**가 **{m['es']:.2f}**야. 평소엔 멀쩡하다가도 갑자기 하한가 꽂을 수 있는 수치라구. 내 돈 아니라고 막 쓰지 마!"
-            
-            <div class='timetable-box'>
-            <b>⏰ 햄찌의 타임테이블</b><br>
-            1. <b>지금 당장</b>: 보유 중이면 호가 낮춰서라도 <b>시장가 투매!</b> 탈출은 지능순이야.<br>
-            2. <b>장중 내내</b>: HTS 끄고 산책이나 가. 쳐다보는 순간 뇌동매매로 깡통 찬다.<br>
-            </div>
-            
+            "야! {random.choice(risk_logic)} **Tail Risk**가 **{m['es']:.2f}**야. 내 돈 아니라고 막 쓰지 마!"
+            <div class='timetable-box'><b>⏰ 햄찌의 타임테이블</b><br>1. <b>지금 당장</b>: <b>시장가 투매!</b><br>2. <b>장중 내내</b>: HTS 꺼.</div>
             **👉 한줄 요약: 폭탄이야! 만지면 손목 날아가! 도망쳐!**
             """
 
-    # 🐯 호찌: 꼰대 + 사자성어 설명 + 상세한 풀이
     def _get_hojji_msg(self, wr, m, can_buy, target, price):
-        idioms_good = [
-            "**금상첨화(錦上添花)** (비단 위에 꽃을 더함)", "**낭중지추(囊中之錐)** (주머니 속의 송곳)",
-            "**파죽지세(破竹之勢)** (대나무를 쪼개듯 맹렬한 기세)"
-        ]
-        idioms_bad = [
-            "**사상누각(砂上樓閣)** (기초가 약함)", "**내우외환(內憂外患)** (안팎으로 근심이 가득함)",
-            "**설상가상(雪上加霜)** (엎친 데 덮친 격)"
-        ]
-        
-        sel_idiom_good = random.choice(idioms_good)
-        sel_idiom_bad = random.choice(idioms_bad)
+        idioms_good = ["**금상첨화(錦上添花)**", "**낭중지추(囊中之錐)**", "**파죽지세(破竹之勢)**"]
+        idioms_bad = ["**사상누각(砂上樓閣)**", "**내우외환(內憂外患)**", "**설상가상(雪上加霜)**"]
+        sel_good = random.choice(idioms_good); sel_bad = random.choice(idioms_bad)
 
         if wr >= 0.80:
             return f"""
             **[🐯 호찌의 훈장님 말씀: "진국일세!"]**
-            
-            "허허, 자네. 차트를 보게나. 아주 {sel_idiom_good}로세! 
-            **GNN 중심성**이 **{m['gnn']:.2f}**로 시장의 자금이 이 종목을 '허브'로 삼아 돌고 있네. 
-            또한 **전이 엔트로피(TE)** 흐름이 양의 방향이야. 실적과 펀더멘털이 주가를 밀어 올리는 '실체 있는 상승'이란 말일세."
-            
-            <div class='timetable-box'>
-            <b>⏳ 호찌의 행동 지침</b><br>
-            1. <b>진입 (14:00)</b>: 변동성이 줄어드는 오후 2시경, <b>{int(can_buy*0.8)}주</b>를 분할 매수하게.<br>
-            2. <b>운용</b>: 단기 등락에 일희일비 말게. <b>{target:,}원</b>까지는 <b>'우보천리'</b>의 마음으로 홀딩하게.<br>
-            </div>
-            
+            "허허, {sel_good}로세! **GNN 중심성** {m['gnn']:.2f}로 시장의 '허브'야. **전이 엔트로피**도 양호해."
+            <div class='timetable-box'><b>⏳ 호찌의 행동 지침</b><br>1. <b>진입 (14:00)</b>: <b>{int(can_buy*0.8)}주</b> 분할 매수.<br>2. <b>운용</b>: <b>{target:,}원</b>까지 '우보천리' 홀딩.</div>
             **👉 한줄 요약: 근본 있는 종목이야. 엉덩이 무겁게 들고 가시게.**
             """
         elif wr >= 0.50:
             return f"""
             **[🐯 호찌의 신중론: "돌다리도 두들겨 보게"]**
-            
-            "음... 계륵(鷄肋)일세. **국소 변동성** 표면이 너무 거칠어. 투기적 자금이 들어와서 주가가 널뛸 수 있네.
-            **꼬리 위험(ES)**이 **{m['es']:.2f}**로 감지되었어. 한 번 악재가 터지면 걷잡을 수 없이 하락할 수 있는 잠재적 위험이 있다는 걸 명심하게."
-            
-            <div class='timetable-box'>
-            <b>⏳ 호찌의 행동 지침</b><br>
-            1. <b>진입</b>: 오늘은 관망하게. 내일 시초가가 5일선 위인지 확인하고 결정해.<br>
-            2. <b>운용</b>: 정 사고 싶다면 <b>{int(can_buy*0.2)}주</b>만 아주 조금 담아보게.<br>
-            </div>
-            
+            "음... 계륵일세. **국소 변동성**이 너무 거칠어. **꼬리 위험(ES)**이 **{m['es']:.2f}**로 감지되었어."
+            <div class='timetable-box'><b>⏳ 호찌의 행동 지침</b><br>1. <b>진입</b>: 오늘은 관망하게.<br>2. <b>운용</b>: 정 사고 싶다면 <b>{int(can_buy*0.2)}주</b>만 조금 담아보게.</div>
             **👉 한줄 요약: 위험해 보이네. 리스크 관리가 최우선이야.**
             """
         else:
             return f"""
             **[🐯 호찌의 대호통: "썩은 동아줄이야!"]**
-            
-            "어허! 이건 {sel_idiom_bad}일세! **Going Concern** 이슈가 보여. 기초가 부실한데 어찌 탑을 쌓으려 하는가!
-            기술적으로도 **비에르고딕** 파산 위험이 감지되었어. 여기서 물리면 자네 자산은 영원히 복구 불가능해."
-            
-            <div class='timetable-box'>
-            <b>⏳ 호찌의 행동 지침</b><br>
-            1. <b>즉시</b>: 포트폴리오에서 제외하게. 현금이 곧 최고의 종목이야.<br>
-            2. <b>향후</b>: 펀더멘털 개선 전까진 쳐다도 보지 말게.<br>
-            </div>
-            
+            "어허! {sel_bad}일세! **Going Concern** 이슈가 보여. **비에르고딕** 파산 위험이 감지되었어."
+            <div class='timetable-box'><b>⏳ 호찌의 행동 지침</b><br>1. <b>즉시</b>: 포트폴리오에서 제외하게.<br>2. <b>향후</b>: 쳐다도 보지 말게.</div>
             **👉 한줄 요약: 절대 잡지 마라. 잡으면 떨어진다네.**
             """
 
     def generate_report(self, mode, price, m, wr, cash, current_qty, target_return):
         volatility = m['vol_surf'] * 0.05
-        # Price Calculation Logic & Rationale
         if mode == "scalping":
             target = int(price * (1 + max(volatility, 0.03)))
             stop = int(price * (1 - volatility * 0.5))
-            rationale = f"스캘핑 기준: 내재 변동성(Vol) {m['vol_surf']:.2f}를 기반으로 1.5σ 상단 목표가({target:,}원), 0.5σ 하단 손절가({stop:,}원)를 정밀 산출함."
+            rationale = f"스캘핑 기준: 내재 변동성 {m['vol_surf']:.2f} 기반 1.5σ 상단 목표, 0.5σ 하단 손절 산출."
             yield_pct = (target - price) / price * 100
         else:
             target = int(price * (1 + (target_return/100)))
             stop = int(price * 0.93)
-            rationale = f"스윙 기준: 사용자 목표 수익률 {target_return}% 및 Hurst Exponent {m['hurst']:.2f}의 추세 지속성을 반영하여 지지선(-7%) 설정."
+            rationale = f"스윙 기준: 목표 수익률 {target_return}% 및 Hurst {m['hurst']:.2f} 추세 지속성 반영."
             yield_pct = target_return
         
         safe_kelly = m['kelly'] * 0.5 
         can_buy = int((cash * safe_kelly) / price) if price > 0 else 0
-
-        h_txt = self._get_hamzzi_msg(wr, m, can_buy, target, price)
-        t_txt = self._get_hojji_msg(wr, m, can_buy, target, price)
-
-        return {
-            "prices": (price, target, stop),
-            "hamzzi": h_txt, "hojji": t_txt, "rationale": rationale, "yield": yield_pct
-        }
+        return {"prices": (price, target, stop), "hamzzi": self._get_hamzzi_msg(wr, m, can_buy, target, price), "hojji": self._get_hojji_msg(wr, m, can_buy, target, price), "rationale": rationale, "yield": yield_pct}
 
     def diagnose_portfolio(self, portfolio, cash):
         if not portfolio: return "포트폴리오 없음", "데이터 없음"
@@ -360,20 +272,8 @@ class SingularityEngine:
         cash_r = (cash/total*100) if total else 100
         stock_count = len(portfolio)
         beta = np.random.uniform(0.5, 2.0)
-        
-        h = f"""
-        **[🐹 햄찌의 계좌 팩트 폭격]**
-        "사장님! **예수금 {cash_r:.1f}%** 실화야? 지금 포트폴리오 **Beta**가 **{beta:.2f}**밖에 안 돼. 
-        이건 **[Cash Drag]**라구! 돈이 썩고 있어!
-        내일 장 시작하면 현금 30% 털어서 주도주 2개 더 담아! **레버리지** 태워서 시장 이겨야지!"
-        """
-        
-        t = f"""
-        **[🐯 호찌의 자산 배분 훈계]**
-        "자네, **보유 종목 {stock_count}개**에 **예수금 {cash_r:.1f}%**... 너무 안일해.
-        종목 간 상관계수가 높아서 하락장 오면 '공멸'할 구조야.
-        수익 중인 건 절반 익절하고, **[국채]**나 **[금]**을 편입해서 **'유비무환'**의 방어벽을 세우게."
-        """
+        h = f"**[🐹 햄찌의 팩트 폭격]**\n\"사장님! **예수금 {cash_r:.1f}%**? **[Cash Drag]**야! 내일 **레버리지** 태워서 시장 이겨야지!\""
+        t = f"**[🐯 호찌의 자산 배분 훈계]**\n\"자네, **종목 {stock_count}개**... 너무 안일해. **[국채]**나 **[금]**을 편입해서 **'유비무환'**의 방어벽을 세우게.\""
         return h, t
 
 # -----------------------------------------------------------------------------
@@ -391,26 +291,19 @@ def render_native_card(d, idx=None, is_rank=False):
             st.markdown(f"### {prefix}{d['name']} <span style='font-size:14px; color:#aaa;'>({d['mode']})</span>", unsafe_allow_html=True)
         with c2:
             st.metric("AI Score", f"{win_pct:.1f}", delta=None)
-        
         st.progress(int(win_pct))
         
         tcols = st.columns(len(d['tags']))
-        for i, tag in enumerate(d['tags']):
-            tcols[i].caption(f"🏷️ {tag['label']}")
-            
+        for i, tag in enumerate(d['tags']): tcols[i].caption(f"🏷️ {tag['label']}")
         st.divider()
         
         i1, i2, i3 = st.columns(3)
         if d.get('is_holding'):
             pnl = d['pnl']
-            i1.metric("현재가", f"{d['price']:,}원")
-            i2.metric("현재 수익률", f"{pnl:.2f}%", delta=f"{pnl:.2f}%")
-            i3.metric("AI 목표가", f"{p['prices'][1]:,}원")
-        else: # 명예의 전당 등
-            target_yield = d['plan']['yield']
-            i1.metric("현재가", f"{d['price']:,}원")
-            i2.metric("예상 수익률", f"+{target_yield:.2f}%", delta=f"{target_yield:.2f}%")
-            i3.metric("AI 목표가", f"{p['prices'][1]:,}원")
+            i1.metric("현재가", f"{d['price']:,}원"); i2.metric("현재 수익률", f"{pnl:.2f}%", delta=f"{pnl:.2f}%"); i3.metric("AI 목표가", f"{p['prices'][1]:,}원")
+        else:
+            ty = d['plan']['yield']
+            i1.metric("현재가", f"{d['price']:,}원"); i2.metric("예상 수익률", f"+{ty:.2f}%", delta=f"{ty:.2f}%"); i3.metric("AI 목표가", f"{p['prices'][1]:,}원")
         
         st.markdown(f"<div style='background:#111; padding:10px; border-radius:5px; margin-top:10px; border:1px dashed #444; font-size:13px; color:#ccc;'>💡 {p['rationale']}</div>", unsafe_allow_html=True)
         
@@ -419,11 +312,9 @@ def render_native_card(d, idx=None, is_rank=False):
         with tab2: st.markdown(f"<div class='analysis-box box-hojji'>{d['hojji']}</div>", unsafe_allow_html=True)
         with tab3:
             st.markdown("### 📊 8대 엔진 매수/매도 기준 가이드")
-            c_eng1, c_eng2 = st.columns(2)
-            with c_eng1:
-                st.markdown(f"**1. Omega: {m['omega']:.1f}Hz** (15Hz↑ 폭발 임박)\n**2. VPIN: {m['vpin']:.2f}** (0.6↑ 독성)\n**3. GNN: {m['gnn']:.2f}** (0.8↑ 대장주)")
-            with c_eng2:
-                st.markdown(f"**4. Hawkes: {m['hawkes']:.2f}** (2.0↑ 폭주)\n**5. Hurst: {m['hurst']:.2f}** (0.5↑ 추세)\n**6. Kelly: {m['kelly']:.2f}** (최적 비중)")
+            c1, c2 = st.columns(2)
+            with c1: st.markdown(f"**1. Omega: {m['omega']:.1f}Hz** (15Hz↑ 폭발)\n**2. VPIN: {m['vpin']:.2f}** (0.6↑ 독성)\n**3. GNN: {m['gnn']:.2f}** (0.8↑ 대장)")
+            with c2: st.markdown(f"**4. Hawkes: {m['hawkes']:.2f}** (2.0↑ 폭주)\n**5. Hurst: {m['hurst']:.2f}** (0.5↑ 추세)\n**6. Kelly: {m['kelly']:.2f}** (최적 비중)")
 
 # -----------------------------------------------------------------------------
 # [5] MAIN APP
